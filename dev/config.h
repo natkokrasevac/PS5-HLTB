@@ -14,14 +14,14 @@
 
 /* Branding shown in the web UI (sent to the page by GET /api/info; do not use
  * " or \ in these strings) */
-#define PLAYTIME_APP_NAME       "PlayTime"
-#define PLAYTIME_TAGLINE        "View and edit your play time"
+#define PLAYTIME_APP_NAME       "PS5-HLTB"
+#define PLAYTIME_TAGLINE        "Play time tracker & HowLongToBeat sync"
 #define PLAYTIME_AUTHOR         "Mahdi Hosseini"
-#define PLAYTIME_REPO_URL       "https://github.com/ghost1372/PlayTime"
+#define PLAYTIME_REPO_URL       "https://github.com/natkokrasevac/PS5-HLTB"
 
 /* Name shown in the PS5 running-process list (thread name, max 19 chars). */
 #ifndef PAYLOAD_PROCESS_NAME
-#define PAYLOAD_PROCESS_NAME   "PlayTime.elf"
+#define PAYLOAD_PROCESS_NAME   "PS5-HLTB.elf"
 #endif
 
 /* Web server */
@@ -32,7 +32,7 @@
 /* Anti-CSRF header the UI sends on edits ("<name>: 1"); requests without it
  * are rejected. Matched case-insensitively. The page reads the name from
  * /api/info, so changing it here is enough. */
-#define PLAYTIME_CSRF_HEADER    "X-PlayTime"
+#define PLAYTIME_CSRF_HEADER    "X-PS5-HLTB"
 
 /* Console database */
 #ifndef APP_DB_PATH
@@ -42,6 +42,16 @@
 /* Where app.db is copied once before the first edit. */
 #ifndef GAMES_BACKUP_PATH
 #define GAMES_BACKUP_PATH "/data/playtime_app.db.bak"
+#endif
+
+/* Where HowLongToBeat sync state and game mappings are persisted. */
+#ifndef HLTB_DB_PATH
+#define HLTB_DB_PATH "/data/playtime_hltb.db"
+#endif
+
+/* Where HowLongToBeat sync state and game mappings are persisted. */
+#ifndef HLTB_DB_PATH
+#define HLTB_DB_PATH "/data/playtime_hltb.db"
 #endif
 
 /* Upper bound accepted for an edited value (units; ~12 years of seconds). */

@@ -8,17 +8,17 @@ else
 endif
 
 PAYLOAD_VERSION ?= v1.0.0
-ELF := PlayTime-$(PAYLOAD_VERSION).elf
+ELF := PS5-HLTB-$(PAYLOAD_VERSION).elf
 
-SOURCES := main.c games.c server.c sqlite/sqlite3.c
-HEADERS := config.h games.h server.h sqlite/sqlite3.h
-ASSETS  := web/index.html
+SOURCES := main.c games.c hltb.c server.c sqlite/sqlite3.c
+HEADERS := config.h games.h hltb.h server.h sqlite/sqlite3.h
+ASSETS  := web/index.html resources/ps4_logo.webp resources/ps5_logo.png resources/app_icon_sm.png
 
 CPPFLAGS := -DPAYLOAD_VERSION=\"$(PAYLOAD_VERSION)\" \
             -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION \
             -DSQLITE_OMIT_SHARED_CACHE -DSQLITE_TEMP_STORE=2
 CFLAGS := -Wall -Werror -Os
-LDLIBS := -lkernel_sys -lSceUserService -lSceSystemService
+LDLIBS := -lkernel_sys -lSceSysmodule -lSceUserService -lSceSystemService -lSceNet -lSceSsl -lSceHttp -lSceHttp2
 
 .PHONY: all clean test debug
 
@@ -28,7 +28,7 @@ $(ELF): $(SOURCES) $(HEADERS) $(ASSETS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(SOURCES) $(LDLIBS)
 
 clean:
-	rm -f PlayTime-*.elf
+	rm -f PS5-HLTB-*.elf PlayTime-*.elf
 
 test: $(ELF)
 	$(PS5_DEPLOY) -h $(PS5_HOST) -p $(PS5_PORT) $^

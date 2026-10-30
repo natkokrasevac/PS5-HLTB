@@ -4,20 +4,22 @@
 #include <stddef.h>
 
 /*
- * Minimal single-threaded HTTP/1.1 server. It parses the request line and one
- * header and hands GET/POST requests to a handler; it knows nothing about games or HTML.
+ * Minimal single-threaded HTTP/1.1 server. It parses the request line, headers,
+ * and optional POST body and hands GET/POST requests to a handler; it knows
+ * nothing about games or HTML.
  */
 
 typedef struct {
     const char *method;  /* "GET" or "POST" */
     const char *path;    /* query string removed */
     const char *query;   /* text after '?', "" if none (raw, not decoded) */
+    const char *body;    /* request body (NUL-terminated, "" if none) */
+    size_t body_length;  /* byte length of body */
     int has_custom_header; /* request carried "<PLAYTIME_CSRF_HEADER>: 1" (CSRF guard) */
 } server_request_t;
 
-/* Called once per GET/POST request (POST bodies are ignored; parameters travel
- * in the query string). The handler must send exactly one response with
- * server_send()/server_send_file(). The server closes the connection after. */
+/* Called once per GET/POST request. The handler must send exactly one response
+ * with server_send()/server_send_file(). The server closes the connection after. */
 typedef void (*server_handler_t)(int client_fd, const server_request_t *request,
                                  void *user);
 

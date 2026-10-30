@@ -1,59 +1,75 @@
-# PlayTime
+<p align="center">
+  <img src="dev/Resources/app_banner.png" alt="PS5-HLTB Banner" width="100%">
+</p>
 
-A PS5 ELF payload that serves a web page listing every installed game, shows how long each one has been played (per console user), and lets you edit the play time.
+# PS5-HLTB
 
-Open it on the console's own browser or from a phone / laptop on the same network.
+A native PS5 ELF payload that tracks console play time, displays interactive stats and progress, and automatically syncs game completion times directly with **HowLongToBeat** (HLTB).
 
-![Playime](https://raw.githubusercontent.com/ghost1372/App-Resources/refs/heads/main/PS5-Payloads/PlayTime/1.png)
-![Playime](https://raw.githubusercontent.com/ghost1372/App-Resources/refs/heads/main/PS5-Payloads/PlayTime/2.png)
-![Playime](https://raw.githubusercontent.com/ghost1372/App-Resources/refs/heads/main/PS5-Payloads/PlayTime/3.png)
-![Playime](https://raw.githubusercontent.com/ghost1372/App-Resources/refs/heads/main/PS5-Payloads/PlayTime/4.jpg)
+Open it on the console's own browser or from a phone / laptop on the same network via QR code.
 
+> [!NOTE]
+> This project is a fork of the original [PlayTime](https://github.com/ghost1372/PlayTime) payload by [Mahdi Hosseini](https://github.com/ghost1372), extended with native background HowLongToBeat (HLTB) synchronization, interactive completion progress tracking, multi-user / platform breakdowns, mobile optimization, and persistent settings.
 
 ## Requirements
 
-- A PS5 payload loader that can run ELF payloads. PlayTime works on all firmware versions your loader supports.
-- The console and your phone / laptop must be on the same network if you want to open the page from another device.
+- A PS5 payload loader that can run ELF payloads. PS5-HLTB works on all firmware versions your loader supports.
+- The console and your phone / laptop must be on the same network if you want to open the web interface from another device.
 
 > [!NOTE]
-> Only installed games are listed (title IDs starting with `CUSA` or `PPSA`).
+> Installed PS5 and PS4 games are listed (`PPSA` / `CUSA`). Homebrew apps are separated and excluded from HLTB sync.
 
 ## How to Use
 
-1. Download the latest `PlayTime-<version>.elf` from the [GitHub Releases](https://github.com/ghost1372/PlayTime/releases) page.
+1. Download the latest `PS5-HLTB-<version>.elf` (or `PS5-HLTB.elf`).
 2. Send the ELF to your PS5 using [Payload Sender](https://github.com/ghost1372/payloadsender) or [payload manager](https://github.com/itsPLK/ps5-payload-manager).
 3. The PS5 browser opens `http://127.0.0.1:7788` automatically.
-4. From a phone or laptop on the same network, open `http://<ps5-ip>:7788`. The address is also shown at the top of the page.
+4. From a phone or laptop on the same network, scan the **Phone QR** button or open `http://<ps5-ip>:7788`.
 
 ## Features
 
-- Total play time, games played / not played, average per game, play time by user and by platform.
-- Most played and recently played lists.
-- Search by name or title ID, filter PS5 / PS4, sort by most played, recent, A-Z or title ID.
-- Dark and light theme.
-- Edit play time per user (see below).
+- **HowLongToBeat Integration**:
+  - Direct native PS5 background syncing with your HLTB account via native HTTPS.
+  - Independent per-profile logins and game selections for each console user.
+  - Auto-matches games against HowLongToBeat's database with completion times (Main Story, Main + Sides, Completionist).
+  - Track backlog, playing, and completed lists directly from the console.
+- **Play Time Management**:
+  - Total play time, games played / not played, average per played game.
+  - Interactive user & platform playtime distribution charts and modals.
+  - Search by name or title ID, multi-platform filter (PS5, PS4, Homebrew), persistent sort settings.
+  - Dark and light themes.
+  - Edit play time per user with backup (`/data/playtime_app.db.bak`).
 
-## Editing play time
+## Screenshots
 
-Open a game, press **Edit play time** under a user, adjust hours and minutes with the `-` / `+` buttons (and the quick +/-5/10/15 buttons) and press **Save changes**.
+<p align="center">
+  <img src="dev/Resources/Screenshots/homepage.png" alt="PS5-HLTB Dashboard" width="100%">
+</p>
 
-- Users are shown by their console account name; `User N` is used if the name cannot be read.
-- Before the first write of a run, `app.db` is copied to `/data/playtime_app.db.bak`. If the copy fails, nothing is written.
-- The game must already have a row for that user.
-- The system may keep its own copy of the numbers in memory, so a reboot can be needed before the PS5 UI shows the change, and it may overwrite the value the next time the game runs.
+<p align="center">
+  <img src="dev/Resources/Screenshots/game_list.png" alt="Game Library & Play Time Tracking" width="100%">
+</p>
+
+<p align="center">
+  <img src="dev/Resources/Screenshots/hltb.png" alt="HowLongToBeat Sync Panel" width="100%">
+</p>
+
+<p align="center">
+  <img src="dev/Resources/Screenshots/game_progress.png" alt="Game Detail & HLTB Stats Modal" width="100%">
+</p>
 
 ## How to compile
 
-> [!NOTE]
-> You need Linux, but you can use Windows and WSL2 to compile this project.
-
-1. Install or prepare the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk).
-2. From the project directory, run:
+1. Install or prepare the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) (or use Docker).
+2. From the `dev` directory, run:
 
    ```sh
-   export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
-   make
+   make clean all
    ```
 
-The output is `PlayTime.elf`.
+The output is `PS5-HLTB-v1.0.0.elf` (and `PS5-HLTB.elf`).
 
+## Credits & Acknowledgments
+
+- Forked from [ghost1372/PlayTime](https://github.com/ghost1372/PlayTime) by [Mahdi Hosseini](https://github.com/ghost1372).
+- HowLongToBeat community data powered by [HowLongToBeat.com](https://howlongtobeat.com).

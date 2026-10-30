@@ -449,13 +449,17 @@ static int append_json(buffer_t *out, const game_t *games, size_t count,
     for(i = 0; i < count; i++) {
         const game_t *game = &games[i];
 
+        int is_hb = (strncmp(game->id, "PPSA9", 5) == 0 || strncmp(game->id, "CUSA9", 5) == 0);
+        const char *platform_str = is_hb ? ",\"platform\":\"HOMEBREW\""
+                                         : (game->id[0] == 'P' ? ",\"platform\":\"PS5\""
+                                                               : ",\"platform\":\"PS4\"");
+
         if((i > 0 && buffer_append_str(out, ",") != 0) ||
            buffer_append_str(out, "{\"id\":") != 0 ||
            buffer_append_json_string(out, game->id) != 0 ||
            buffer_append_str(out, ",\"name\":") != 0 ||
            buffer_append_json_string(out, game->name) != 0 ||
-           buffer_append_str(out, game->id[0] == 'P' ? ",\"platform\":\"PS5\""
-                                                      : ",\"platform\":\"PS4\"") != 0 ||
+           buffer_append_str(out, platform_str) != 0 ||
            buffer_append_str(out, ",\"played\":[") != 0) {
             return -1;
         }

@@ -19,6 +19,7 @@
 #include "server.h"
 
 #define REQUEST_MAX 4096
+#define BODY_MAX 65536
 #define IO_TIMEOUT_SECONDS 5
 
 static const char *status_text(int status) {
@@ -186,18 +187,52 @@ static int has_custom_header(const char *headers) {
     return 0;
 }
 
-/* Reads until the end of the headers; the request line and the CSRF header are
- * used, everything else is ignored. */
+static size_t parse_content_length(const char *headers) {
+    static const char NAME[] = "Content-Length";
+    const size_t name_len = sizeof NAME - 1;
+    const char *p = headers;
+
+    while(*p) {
+        if(strncasecmp(p, NAME, name_len) == 0 && p[name_len] == ':') {
+            unsigned long val;
+            char *end = NULL;
+
+            p += name_len + 1;
+            while(*p == ' ' || *p == '\t') {
+                p++;
+            }
+            val = strtoul(p, &end, 10);
+            if(end && end != p && val <= BODY_MAX) {
+                return (size_t)val;
+            }
+            return 0;
+        }
+        p = strstr(p, "\r\n");
+        if(!p) {
+            break;
+        }
+        p += 2;
+    }
+    return 0;
+}
+
+/* Reads headers and optional request body. */
 static int read_request(int fd, char *method, size_t method_size, char *path,
                         size_t path_size, char *query, size_t query_size,
+                        char **out_body, size_t *out_body_len,
                         int *custom_header) {
     char buf[REQUEST_MAX];
     size_t used = 0;
+    char *header_end = NULL;
     char *line_end;
     char *space1;
     char *space2;
     char *q;
     size_t n;
+    size_t content_len = 0;
+
+    *out_body = NULL;
+    *out_body_len = 0;
 
     while(used < sizeof buf - 1) {
         ssize_t got = recv(fd, buf + used, sizeof buf - 1 - used, 0);
@@ -209,20 +244,22 @@ static int read_request(int fd, char *method, size_t method_size, char *path,
         }
         used += (size_t)got;
         buf[used] = '\0';
-        if(strstr(buf, "\r\n\r\n")) {
+        header_end = strstr(buf, "\r\n\r\n");
+        if(header_end) {
             break;
         }
     }
-    if(used == 0) {
+    if(used == 0 || !header_end) {
         return -1;
     }
-    buf[used] = '\0';
+    *header_end = '\0';
 
     line_end = strstr(buf, "\r\n");
     if(!line_end) {
         return -1;
     }
     *custom_header = has_custom_header(line_end + 2);
+    content_len = parse_content_length(line_end + 2);
     *line_end = '\0';
 
     space1 = strchr(buf, ' ');
@@ -255,6 +292,35 @@ static int read_request(int fd, char *method, size_t method_size, char *path,
         return -1;
     }
     memcpy(path, space1, n + 1);
+
+    if(content_len > 0) {
+        size_t body_offset = (size_t)((header_end + 4) - buf);
+        size_t already = used > body_offset ? used - body_offset : 0;
+        char *body = (char *)malloc(content_len + 1);
+
+        if(!body) {
+            return -1;
+        }
+        if(already > content_len) {
+            already = content_len;
+        }
+        if(already > 0) {
+            memcpy(body, header_end + 4, already);
+        }
+        while(already < content_len) {
+            ssize_t got = recv(fd, body + already, content_len - already, 0);
+            if(got < 0 && errno == EINTR) {
+                continue;
+            }
+            if(got <= 0) {
+                break;
+            }
+            already += (size_t)got;
+        }
+        body[already] = '\0';
+        *out_body = body;
+        *out_body_len = already;
+    }
     return 0;
 }
 
@@ -265,7 +331,9 @@ int server_run(int listen_fd, server_handler_t handler, void *user) {
     for(;;) {
         char method[16];
         char path[512];
-        char query[256];
+        char query[1024];
+        char *body = NULL;
+        size_t body_len = 0;
         int custom = 0;
         struct timeval tv;
         int client_fd = accept(listen_fd, NULL, NULL);
@@ -284,7 +352,7 @@ int server_run(int listen_fd, server_handler_t handler, void *user) {
         setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
 
         if(read_request(client_fd, method, sizeof method, path, sizeof path,
-                        query, sizeof query, &custom) != 0) {
+                        query, sizeof query, &body, &body_len, &custom) != 0) {
             server_send(client_fd, 400, "text/plain", "Bad request", 11, 0);
         } else if(strcmp(method, "GET") != 0 && strcmp(method, "POST") != 0) {
             server_send(client_fd, 405, "text/plain", "Method not allowed", 18, 0);
@@ -294,9 +362,12 @@ int server_run(int listen_fd, server_handler_t handler, void *user) {
             request.method = method;
             request.path = path;
             request.query = query;
+            request.body = body ? body : "";
+            request.body_length = body_len;
             request.has_custom_header = custom;
             handler(client_fd, &request, user);
         }
+        free(body);
         close(client_fd);
     }
 }

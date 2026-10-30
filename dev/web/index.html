@@ -12,7 +12,8 @@
   document.documentElement.setAttribute("data-theme", t);
 })();
 </script>
-<title>Payload</title>
+<title>PS5-HLTB</title>
+<link rel="icon" type="image/png" href="/resources/app_icon.png">
 <style>
 :root, :root[data-theme="dark"] {
   color-scheme: dark;
@@ -65,9 +66,11 @@
   --r: 8px;
   --r-lg: 16px;
   --rc: 4px;
+  --logo-filter: brightness(0) invert(1);
 }
 :root[data-theme="light"] {
   color-scheme: light;
+  --logo-filter: none;
   --bg: #e6e9f0;
   --glow: rgba(0, 103, 192, .12);
   --glow2: rgba(113, 96, 232, .07);
@@ -123,14 +126,28 @@ body {
 button, select, input { font-family: inherit; }
 .page { display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; width: 100%; max-width: 92rem; margin: 0 auto; padding: .936rem .936rem 1.56rem; }
 
-.topline { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: .624rem; color: var(--muted); font-size: .78rem; font-weight: 600; }
-.live i { display: inline-block; width: .5rem; height: .5rem; margin-right: .39rem; border-radius: 50%; background: var(--green); }
-.tright { position: relative; z-index: 2; display: flex; align-items: center; }
+.topline { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .6rem; margin-bottom: .624rem; border-bottom: 1px solid var(--line); }
+.topline .tabs { display: flex; flex-wrap: wrap; margin-bottom: 0; border-bottom: none; }
+.topline .tright { position: relative; z-index: 2; display: flex; align-items: center; margin-bottom: .22rem; }
 .pills { display: flex; flex-wrap: wrap; align-items: center; }
 .pill { display: inline-flex; align-items: center; margin: 0 .39rem .234rem 0; padding: .312rem .702rem; color: var(--text); font-size: .85rem; font-weight: 600; background: var(--panel-grad), var(--fill); border: 1px solid var(--line); border-radius: 999px; }
 .pill .pl { margin-right: .468rem; color: var(--muted); font-weight: 600; }
+button.pill { cursor: pointer; transition: background .12s, border-color .12s; }
+button.pill:hover { background: var(--fill-hover); border-color: var(--accent); }
+button.pill svg { width: .95rem; height: .95rem; margin-right: .38rem; color: var(--accent); }
 .theme svg, .theme .track, .theme .track i { pointer-events: none; }
 .addr { color: var(--text); font-family: "SFMono-Regular", Consolas, monospace; }
+
+/* sidebar visible access & qr */
+.side-access { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex: 1 1 auto; margin-top: .65rem; padding: .85rem .75rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); cursor: pointer; transition: background .12s, border-color .12s; min-height: 13.5rem; }
+.side-access:hover { background: var(--surface-hover); border-color: var(--line-strong); }
+.side-qr-box { width: clamp(9.5rem, 22vw, 13rem); height: clamp(9.5rem, 22vw, 13rem); max-width: 90%; aspect-ratio: 1; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: .45rem; margin: .45rem 0 .5rem; border-radius: 8px; box-shadow: 0 3px 12px rgba(0,0,0,.38); overflow: hidden; }
+.side-qr-box svg { width: 100%; height: 100%; display: block; }
+.side-access-info { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.side-access-tag { display: inline-flex; align-items: center; gap: .38rem; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.side-access-dot { display: inline-block; width: .46rem; height: .46rem; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.side-access-addr { font-family: "SFMono-Regular", Consolas, monospace; font-size: .98rem; font-weight: 700; color: var(--text); word-break: break-all; user-select: all; }
+.side-access-sub { margin-top: .2rem; font-size: .74rem; color: var(--muted); line-height: 1.25; }
 
 /* time format segmented control */
 .seg { display: inline-flex; margin-right: .624rem; padding: .18rem; background: var(--seg-bg); border: 1px solid var(--seg-line); border-radius: 999px; }
@@ -156,7 +173,7 @@ button, select, input { font-family: inherit; }
 .total { padding: .858rem 1.014rem .936rem; margin-bottom: .624rem; background: var(--hero); }
 .head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; margin: 0 .936rem .156rem 0; }
-.slot { margin: .6rem 0; }
+.slot { margin: 0; }
 .uchart { display: flex; align-items: center; min-height: 6.4rem; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
 .uchart svg { flex: 0 0 auto; width: 5.6rem; height: 5.6rem; margin-right: 1rem; transform: rotate(-90deg); }
 .uchart .seg { fill: none; stroke-width: 9; transition: stroke-dasharray .9s cubic-bezier(.2,.8,.2,1), stroke-width .15s; cursor: default; }
@@ -171,12 +188,19 @@ button, select, input { font-family: inherit; }
 .urow .up { flex: 0 0 auto; width: 2.6rem; margin-left: .5rem; text-align: right; font-weight: 700; }
 .totalbox { margin: 0 0 .156rem; padding: .35rem .7rem; text-align: left; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
 .totalbox .eyebrow { margin-bottom: .1rem; text-align: left; }
-.mark { width: 2.8rem; height: 2.8rem; margin-right: .624rem; border-radius: var(--r); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: var(--on-accent); font-size: 1.4rem; font-weight: 800; background: var(--grad); }
+.mark { width: 2.8rem; height: 2.8rem; margin-right: .624rem; border-radius: var(--r); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000000; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.brand-app-icon { width: 100%; height: 100%; object-fit: cover; display: block; }
+.brand-logo { width: 2.1rem; height: auto; max-height: 1.4rem; object-fit: contain; filter: brightness(0) invert(1); display: block; }
+.chip-logo { height: 1.05rem; width: auto; vertical-align: middle; margin: 0; filter: var(--logo-filter); transition: filter .12s; display: inline-block; pointer-events: none; }
+.chip.on .chip-logo { filter: brightness(0) invert(1); }
+.chip[data-p="PS5"], .chip[data-p="PS4"] { display: inline-flex; align-items: center; justify-content: center; min-width: 4.8rem; }
+.plat-av-img { width: 85%; height: auto; max-height: 80%; object-fit: contain; filter: brightness(0) invert(1); display: block; }
+.modal-title-logo { height: 1.15rem; width: auto; vertical-align: -2px; margin-right: .35rem; filter: var(--logo-filter); display: inline-block; }
 h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
 .ver { margin-left: .273rem; color: var(--muted); font-size: .8rem; font-weight: 600; vertical-align: middle; }
 .big { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
 .sub { margin: .078rem 0 0; color: var(--muted); font-size: .85rem; }
-.tiles { display: flex; flex-wrap: wrap; margin-top: .624rem; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+.tiles { display: flex; flex-wrap: wrap; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
 .tile { flex: 1 1 6rem; padding: .4rem .5rem; text-align: center; border-left: 1px solid var(--line); }
 .tile:first-child { border-left: 0; }
 .tile.sm { flex: 0 1 5.2rem; }
@@ -184,8 +208,8 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
 .tile b { display: block; font-size: 1.15rem; line-height: 1.25; }
 .tile span { color: var(--muted); font-size: .74rem; font-weight: 600; }
 .hero { display: flex; flex-wrap: wrap; }
-.hmain { display: flex; flex-direction: column; justify-content: space-between; flex: 1 1 26rem; min-width: 0; margin-right: .936rem; }
-.hside { flex: 0 1 28rem; min-width: 15rem; padding: .6rem .7rem .5rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+.hmain { display: flex; flex-direction: column; flex: 1 1 26rem; min-width: 0; margin-right: .936rem; gap: .55rem; }
+.hside { display: flex; flex-direction: column; flex: 0 1 28rem; min-width: 15rem; padding: .6rem .7rem .65rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
 .hside h2 { margin: 0 0 .4rem; color: var(--muted); font-size: .8rem; font-weight: 600; }
 .hside h2.gap { margin-top: .6rem; }
 .hside .item { margin-bottom: .2rem; padding: .25rem .45rem; }
@@ -195,15 +219,16 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
 .cols .iname { font-size: 1rem; }
 .cols .isub { font-size: .78rem; font-family: "SFMono-Regular", Consolas, monospace; letter-spacing: .03em; }
 .cols .ival { font-size: 1rem; }
-#pTop .item, #grid.list .item { padding: .5rem .7rem; }
-#pTop .iright, #grid.list .iright { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; margin-left: .624rem; }
-#pTop .ival, #grid.list .ival { box-sizing: border-box; width: 15rem; margin: 0; padding: .18rem .65rem; text-align: center; color: var(--green); font-size: .85rem; line-height: 1.35; background: var(--played-bg); border: 1px solid var(--played-line); border-radius: 6px; }
-#pTop .ilast, #grid.list .ilast { box-sizing: border-box; width: 15rem; margin-top: .3rem; padding: .12rem .65rem; text-align: center; color: var(--muted); font-size: .74rem; font-weight: 600; line-height: 1.35; background: var(--inset); border: 1px solid var(--line); border-radius: 6px; }
+#pTop .item, #grid.list .item, #pHltb .item { padding: .5rem .7rem; }
+#pTop .iright, #grid.list .iright, #pHltb .iright { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; margin-left: .624rem; }
+#pTop .ival, #grid.list .ival, #pHltb .ival { box-sizing: border-box; width: 15rem; margin: 0; padding: .18rem .65rem; text-align: center; color: var(--green); font-size: .85rem; line-height: 1.35; background: var(--played-bg); border: 1px solid var(--played-line); border-radius: 6px; }
+#pTop .ilast, #grid.list .ilast, #pHltb .ilast { box-sizing: border-box; width: 15rem; margin-top: .3rem; padding: .12rem .65rem; text-align: center; color: var(--muted); font-size: .74rem; font-weight: 600; line-height: 1.35; background: var(--inset); border: 1px solid var(--line); border-radius: 6px; }
 #grid.list .thumb { width: 2.8rem; height: 2.8rem; }
 #grid.list .rank { width: 2.6rem; margin-right: .4rem; font-size: .95rem; font-variant-numeric: tabular-nums; }
 #grid.list .rank.top { color: var(--muted); }
 #grid.list .iname { font-size: 1rem; }
-#grid.list .ival.dim { color: var(--red); background: var(--never-bg); border-color: var(--never-line); }
+#grid.list .ival.dim, #pHltb .ival.dim { color: var(--red); background: var(--never-bg); border-color: var(--never-line); }
+#pHltb .ival.warn { color: var(--amber); background: rgba(255, 180, 84, .14); border-color: var(--amber); }
 .grid.list { display: block; }
 .grid.list .skel { height: 4rem; margin-bottom: .312rem; }
 .idchip { display: inline-flex; align-items: baseline; margin-top: .25rem; padding: .1rem .55rem; font-family: "SFMono-Regular", Consolas, monospace; font-size: .78rem; font-weight: 700; letter-spacing: .06em; color: var(--text); background: var(--inset); border: 1px solid var(--line-strong); border-radius: 6px; }
@@ -215,13 +240,15 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
 #pUsers .ival.dim, #pPlat .ival.dim { color: var(--red); background: var(--never-bg); border-color: var(--never-line); }
 .gstamp { display: inline-flex; white-space: nowrap; align-items: center; height: 1.4rem; box-sizing: border-box; margin-top: .25rem; padding: 0 .55rem; font-size: .72rem; font-weight: 500; line-height: 1; color: var(--accent); background: var(--badge-bg); border: 1px solid var(--accent); border-radius: 6px; }
 .gstamp.amber { color: var(--amber); border-color: var(--amber); }
+.gstamp.green { color: var(--green); border-color: var(--green); }
 .gstamp.zero { color: var(--muted); background: var(--inset); border-color: var(--line-strong); }
-.tabs { display: flex; margin-bottom: .55rem; border-bottom: 1px solid var(--line); }
+.tabs { display: flex; flex-wrap: wrap; margin-bottom: .55rem; border-bottom: 1px solid var(--line); }
 .tab { margin: 0 .3rem -1px 0; padding: .4rem .9rem; cursor: pointer; font: inherit; font-size: .9rem; font-weight: 600; color: var(--muted); background: transparent; border: 0; border-bottom: 2px solid transparent; }
 .tab:hover { color: var(--text); }
 .tab.on { color: var(--accent); border-bottom-color: var(--accent); }
 .tab:focus { outline: none; }
 .tab:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.tab .tbadge { display: inline-block; margin-left: .35rem; padding: .05rem .42rem; font-size: .72rem; font-weight: 800; border-radius: 999px; color: var(--on-amber); background: var(--amber-grad); vertical-align: middle; }
 .overview .total { margin-bottom: 0; }
 
 .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); grid-gap: .624rem; }
@@ -267,7 +294,7 @@ button.item:hover { background: var(--fill-hover); }
 .chip:active, .refresh:not(:disabled):active, .qbtn:active, .sbtn:active { background: var(--fill-press); }
 .chip.on, .refresh.primary { color: var(--on-accent); border-color: transparent; background: var(--grad); }
 .chip.on:hover, .refresh.primary:not(:disabled):hover { background: var(--grad-hover); }
-.refresh:disabled, .refresh.primary:disabled { cursor: default; color: var(--muted); background: var(--fill); border-color: var(--line); opacity: .6; }
+.refresh:disabled, .refresh.primary:disabled { cursor: not-allowed; color: var(--muted); background: var(--fill); border-color: var(--line); opacity: .45; filter: grayscale(1); }
 
 .meta { margin: 0 .156rem .546rem; color: var(--muted); font-size: .85rem; }
 
@@ -279,6 +306,10 @@ button.item:hover { background: var(--fill-hover); }
 .art img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 .badge { position: absolute; top: .7rem; left: .6rem; display: inline-flex; align-items: baseline; padding: .1rem .55rem; font-family: "SFMono-Regular", Consolas, monospace; font-size: .78rem; font-weight: 800; letter-spacing: .06em; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; background: var(--badge-bg); box-shadow: 0 .2rem .6rem rgba(0, 0, 0, .3); }
 .badge.ps4 { color: var(--amber); border-color: var(--amber); }
+.badge.hb { color: #c084fc; border-color: #c084fc; }
+.avatar.sq.hb { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; }
+.hbadge { position: absolute; bottom: .55rem; right: .55rem; padding: .1rem .45rem; font-size: .68rem; font-weight: 800; letter-spacing: .04em; color: var(--green); border: 1px solid var(--played-line); border-radius: 5px; background: var(--badge-bg); box-shadow: 0 .15rem .4rem rgba(0, 0, 0, .35); }
+.hbadge.pend { color: var(--amber); border-color: var(--amber); }
 .info { padding: .468rem .546rem .546rem; }
 .name { margin: 0 0 .234rem; font-size: .9rem; font-weight: 700; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 2.6em; }
 .time { display: block; width: 100%; text-align: center; margin: 0 0 .35rem; padding: .16rem .6rem; color: var(--green); font-size: .76rem; font-weight: 700; line-height: 1.35; background: var(--played-bg); border: 1px solid var(--played-line); border-radius: 6px; }
@@ -298,9 +329,10 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 .credit b { color: var(--text); font-weight: 700; }
 .credit a { color: var(--accent); text-decoration: none; word-break: break-all; }
 
-/* ---------- detail ---------- */
+/* ---------- detail & modals ---------- */
 .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 20; padding: .78rem; align-items: center; justify-content: center; overflow-y: auto; background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .modal { position: relative; width: 100%; max-width: 54rem; padding: .78rem 1.092rem; margin: auto; text-align: left; background: var(--solid); border: 1px solid var(--line-strong); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
+.modal.sm { max-width: 30rem; text-align: center; }
 .mhead { display: flex; align-items: center; margin-bottom: .5rem; }
 .mart { position: relative; width: 5rem; height: 5rem; margin-right: .936rem; flex: 0 0 auto; overflow: hidden; border-radius: var(--r); background: var(--art); }
 .mart .ph { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: var(--ph); font-size: 2.6rem; font-weight: 800; }
@@ -314,6 +346,8 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 .mstamps { display: flex; flex-wrap: wrap; margin-top: .25rem; }
 .mstamp { margin: 0 .4rem .2rem 0; padding: .06rem .4rem; font-size: .72rem; font-weight: 800; letter-spacing: .1em; line-height: 1.4; color: var(--accent); border: 2px solid var(--accent); border-radius: 3px; background: var(--badge-bg); }
 .mstamp.ps4 { color: var(--amber); border-color: var(--amber); }
+.mstamp.hb { color: #c084fc; border-color: #c084fc; }
+.gstamp.hb { color: #c084fc; border-color: #c084fc; }
 .mstamp.id { color: var(--text); border-color: var(--line-strong); font-family: "SFMono-Regular", Consolas, monospace; }
 
 .ebtn { flex: 0 0 auto; margin-left: .5rem; padding: .3rem .75rem; cursor: pointer; color: var(--text); font: inherit; font-size: .85rem; font-weight: 600; white-space: nowrap; background: var(--fill); border: 1px solid var(--line-strong); border-radius: var(--rc); }
@@ -341,36 +375,347 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 .mbtns { display: flex; flex-wrap: wrap; margin-top: .5rem; }
 .mbtns .refresh { flex: 1 1 auto; width: 100%; margin: 0; }
 
+/* ---------- QR code & HLTB UI ---------- */
+.qrwrap { display: inline-flex; padding: .9rem; margin: .6rem auto; border-radius: var(--r); background: #ffffff; box-shadow: var(--shadow); }
+.qrwrap svg { width: 13.5rem; height: 13.5rem; display: block; }
+.qrurl { margin: .4rem 0 .2rem; font-family: "SFMono-Regular", Consolas, monospace; font-size: 1.05rem; font-weight: 700; color: var(--accent); word-break: break-all; }
+.hltb-top { display: flex; flex-wrap: wrap; gap: .78rem; margin-bottom: .78rem; }
+.hltb-card { flex: 1 1 24rem; min-width: 0; padding: .78rem .9rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+.hltb-card h3 { margin: 0 0 .4rem; font-size: 1rem; font-weight: 700; color: var(--text); }
+.hltb-row { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .5rem 0; }
+.hltb-sel, .hltb-inp, .hltb-txt { height: 2.5rem; padding: 0 .65rem; color: var(--text); font-size: .9rem; font-weight: 600; background: var(--solid); border: 1px solid var(--line-strong); border-radius: var(--rc); }
+.hltb-inp { width: 9rem; font-family: "SFMono-Regular", Consolas, monospace; }
+.hltb-txt { flex: 1 1 11rem; min-width: 9rem; }
+.hltb-selbtn { flex: 0 0 auto; padding: .35rem .7rem; cursor: pointer; font: inherit; font-size: .8rem; font-weight: 700; border-radius: var(--rc); border: 1px solid var(--line-strong); background: var(--fill); color: var(--muted); transition: all .12s; }
+.hltb-selbtn:hover { background: var(--fill-hover); color: var(--text); }
+.hltb-selbtn.on { background: var(--played-bg); border-color: var(--played-line); color: var(--green); }
+.hltb-list-group { display: inline-flex; align-items: center; background: var(--fill); border: 1px solid var(--line-strong); border-radius: var(--rc); padding: 2px; gap: 2px; }
+.hltb-pill { padding: .22rem .6rem; border: none; background: transparent; color: var(--muted); font: inherit; font-size: .78rem; font-weight: 700; border-radius: 4px; cursor: pointer; transition: all .12s; }
+.hltb-pill:hover { color: var(--text); background: var(--fill-hover); }
+.hltb-pill.on { color: #ffffff !important; }
+.hltb-pill.on.playing { background: #2563eb; }
+.hltb-pill.on.backlog { background: #d97706; }
+.hltb-pill.on.completed { background: #059669; }
+.m-hltb { margin-top: .6rem; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+
+/* ---------- HLTB Banner (HowLongToBeat visual style from screenshot) ---------- */
+.hltb-banner { display: flex; align-items: stretch; gap: .45rem; margin: .65rem 0 .5rem; flex-wrap: wrap; }
+.hltb-brand-box { flex: 0 0 auto; background: #25669b; border-radius: 6px; padding: .55rem .95rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 8rem; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); color: #ffffff; border: 1px solid rgba(255, 255, 255, .15); user-select: none; }
+.hltb-brand-lbl { font-size: .72rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #dbeafe; margin-bottom: .2rem; }
+.hltb-brand-val { font-size: 1.25rem; font-weight: 800; color: #ffffff; white-space: nowrap; }
+.hltb-styles-box { flex: 1 1 18rem; display: flex; align-items: stretch; background: #25669b; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); border: 1px solid rgba(255, 255, 255, .15); }
+.hltb-style-btn { flex: 1 1 0; padding: .55rem .75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; border: 0; color: #ffffff; cursor: pointer; transition: background .15s; text-align: center; position: relative; }
+.hltb-style-btn:not(:first-child) { border-left: 1px solid rgba(255, 255, 255, .22); }
+.hltb-style-btn:hover { background: rgba(255, 255, 255, .12); }
+.hltb-style-btn.active { background: rgba(0, 0, 0, .24); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .28); }
+.hltb-style-lbl { font-size: .74rem; font-weight: 700; color: #dbeafe; margin-bottom: .2rem; white-space: nowrap; }
+.hltb-style-val { font-size: 1.15rem; font-weight: 800; color: #ffffff; white-space: nowrap; }
+
+/* ---------- HLTB Progress Bar ---------- */
+.hltb-pbar { width: 100%; margin: .38rem 0 .2rem; }
+.hltb-pbar-head { display: flex; align-items: center; justify-content: space-between; font-size: .74rem; font-weight: 700; color: var(--muted); margin-bottom: .22rem; line-height: 1.25; }
+.hltb-pbar-head b { color: var(--text); font-weight: 700; }
+.hltb-pbar-head .hltb-pbar-pct { color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; }
+.hltb-pbar-head .hltb-pbar-pct.done { color: var(--green); }
+.hltb-pbar-track { width: 100%; height: 7px; background: var(--inset); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; position: relative; }
+.hltb-pbar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #06b6d4); transition: width .35s ease-out; min-width: 0; }
+.hltb-pbar-fill.done { background: linear-gradient(90deg, #059669, #34d399); }
+.hltb-pbar-fill.over { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+.hltb-pbar.compact { margin: .28rem 0 0; }
+.hltb-pbar.compact .hltb-pbar-track { height: 5px; }
+.hltb-pbar.compact .hltb-pbar-head { font-size: .69rem; margin-bottom: .12rem; }
+
+/* ---------- Dashboard HLTB Progress List ---------- */
+.dash-progress-wrap { margin: 0; }
+.dash-prog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .35rem; }
+.dash-prog-head h2 { margin: 0; color: var(--muted); font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.dash-prog-users { display: inline-flex; align-items: center; gap: .3rem; }
+.dash-user-pill { padding: .16rem .55rem; font: inherit; font-size: .76rem; font-weight: 700; border-radius: 999px; background: var(--fill); border: 1px solid var(--line); color: var(--muted); cursor: pointer; transition: all .12s; }
+.dash-user-pill:hover { background: var(--fill-hover); color: var(--text); }
+.dash-user-pill.on { font-weight: 800; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+
+#pDashProgress { display: flex; flex-direction: column; gap: .45rem; }
+.prog-item { display: flex; align-items: center; padding: .55rem .8rem; border-radius: var(--r); background: var(--fill); border: 1px solid var(--line); cursor: pointer; transition: background .12s, border-color .12s, transform .12s; }
+.prog-item:hover { background: var(--fill-hover); border-color: var(--accent); transform: translateY(-1px); }
+.prog-item:focus { outline: none; }
+.prog-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+.prog-thumb { position: relative; width: 3.2rem; height: 3.2rem; margin-right: .75rem; flex: 0 0 auto; border-radius: var(--rc); overflow: hidden; background: var(--art); }
+.prog-thumb img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+.prog-thumb .ph { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--ph); font-size: 1.35rem; }
+.prog-mid { flex: 1 1 auto; min-width: 0; }
+.prog-title { font-size: .95rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pbadge-stat { font-size: .72rem; padding: .1rem .45rem; border-radius: 4px; background: var(--inset); border: 1px solid var(--line); white-space: nowrap; }
+
+/* Compact distribution modal list */
+#distModalList { gap: .3rem !important; }
+#distModalList .prog-item { padding: .32rem .6rem; border-radius: var(--rc); }
+#distModalList .prog-thumb { width: 2.2rem; height: 2.2rem; margin-right: .55rem; border-radius: 5px; }
+#distModalList .prog-thumb .ph { font-size: .95rem; }
+#distModalList .prog-title { font-size: .86rem; font-weight: 600; }
+
 /* keyboard / controller focus: clear double ring */
 .tab:focus, .theme:focus, .chip:focus, .refresh:focus, .qbtn:focus, .sbtn:focus, .item:focus, .search:focus, .sclear:focus, .card:focus, .credit a:focus { outline: none; }
-.theme:focus-visible, .chip:focus-visible, .sclear:focus-visible, .refresh:focus-visible, .qbtn:focus-visible, .sbtn:focus-visible, .item:focus-visible-visible-visible, .credit a:focus-visible {
+.theme:focus-visible, .chip:focus-visible, .sclear:focus-visible, .refresh:focus-visible, .qbtn:focus-visible, .sbtn:focus-visible, .credit a:focus-visible {
   outline: none; box-shadow: 0 0 0 2px var(--accent);
 }
 
-@media (max-width: 560px) {
-  .page { padding: .936rem .702rem 1.95rem; }
-  .total { padding: .936rem; }
+@media (max-width: 680px) {
+  .page { padding: .75rem .6rem 1.75rem; }
+  .total { padding: .85rem; }
   .big { font-size: 1.3rem; }
   .totalbox { text-align: left; }
   .totalbox .eyebrow { text-align: left; }
+
+  /* Topline: tabs on row 1, format & theme toggles on row 2 */
+  .topline {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .45rem;
+    padding-bottom: .35rem;
+  }
+  .topline .tabs {
+    width: 100%;
+    justify-content: flex-start;
+    gap: .2rem;
+  }
+  .topline .tab {
+    padding: .35rem .6rem;
+    font-size: .86rem;
+  }
+  .topline .tright {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .2rem;
+  }
+  .seg {
+    margin-right: 0;
+  }
+  .seg button {
+    padding: .14rem .5rem;
+    font-size: .74rem;
+  }
+
+  /* Hero & Sidebar */
+  .hero {
+    flex-direction: column;
+  }
+  .hmain {
+    margin-right: 0;
+    margin-bottom: .8rem;
+    width: 100%;
+  }
+  .hside {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    padding: .6rem .65rem .65rem;
+  }
+
+  /* User & Platform sidebar rows: prevent fixed widths and text collision */
+  #pUsers .item, #pPlat .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .35rem .55rem;
+    gap: .45rem;
+  }
+  #pUsers .avatar, #pPlat .avatar {
+    width: 1.9rem;
+    height: 1.9rem;
+    font-size: .78rem;
+    margin-right: 0;
+    flex-shrink: 0;
+  }
+  #pUsers .imid, #pPlat .imid {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  #pUsers .iname, #pPlat .iname {
+    font-size: .88rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pUsers .ival, #pPlat .ival {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: auto !important;
+    min-width: 0;
+    max-width: 52%;
+    padding: .2rem .48rem;
+    font-size: .76rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
+  .gstamp {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Console Access card: compact QR and non-clipped text on phone */
+  .side-access {
+    min-height: auto !important;
+    padding: .85rem .75rem;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+  }
+  .side-qr-box {
+    width: 8.5rem !important;
+    height: 8.5rem !important;
+    max-width: 80%;
+    margin: .35rem 0 .45rem;
+  }
+  .side-access-info {
+    flex-shrink: 0;
+  }
+  .side-access-addr {
+    font-size: .92rem;
+  }
+  .side-access-sub {
+    font-size: .72rem;
+    line-height: 1.25;
+  }
+
+  /* List views: Top games, Grid list, HLTB sync */
+  #pTop .item, #grid.list .item, #pHltb .item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: .6rem .65rem;
+    gap: .35rem .5rem;
+  }
+  #pTop .thumb, #grid.list .thumb, #pHltb .thumb {
+    width: 2.7rem;
+    height: 2.7rem;
+    flex-shrink: 0;
+  }
+  #pTop .rank, #grid.list .rank {
+    width: 1.6rem;
+    margin-right: .15rem;
+    flex-shrink: 0;
+    font-size: .9rem;
+  }
+  #pHltb .hltb-selbtn {
+    flex-shrink: 0;
+    margin-right: .35rem !important;
+    padding: .3rem .55rem;
+    font-size: .75rem;
+  }
+  #pTop .imid, #grid.list .imid, #pHltb .imid {
+    flex: 1 1 calc(100% - 7rem);
+    min-width: 0;
+  }
+  #pTop .iname, #grid.list .iname, #pHltb .iname {
+    font-size: .92rem;
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+    white-space: normal;
+  }
+  .mstamps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    margin-top: .25rem;
+  }
+  .hltb-list-group {
+    flex-wrap: wrap;
+    margin-top: .25rem !important;
+  }
+  .hltb-pill {
+    padding: .18rem .5rem;
+    font-size: .74rem;
+  }
+  #pTop .iright, #grid.list .iright, #pHltb .iright {
+    flex: 1 1 100%;
+    width: 100%;
+    margin-left: 0 !important;
+    margin-top: .35rem;
+    padding-top: .35rem;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+  #pTop .ival, #pTop .ilast, #grid.list .ival, #grid.list .ilast, #pHltb .ival, #pHltb .ilast {
+    width: auto !important;
+    flex: 1 1 7.5rem;
+    margin: 0 !important;
+    font-size: .78rem;
+    padding: .22rem .5rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Toolbar search & filters */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .4rem;
+  }
+  .sbox {
+    margin-right: 0;
+    min-width: 0;
+  }
+  .chips {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+  .chip, .refresh, .qbtn, .sbtn {
+    height: 2.4rem;
+    padding: 0 .65rem;
+    font-size: .82rem;
+    margin: 0 !important;
+  }
+  .chip-logo { height: .9rem; }
+  .chip[data-p="PS5"], .chip[data-p="PS4"] { min-width: 3.8rem; }
+
+  /* Modals */
+  .modal { padding: .75rem .85rem; max-width: 100%; }
+  .modal .ival { width: auto !important; flex: 1 1 auto; margin: 0 !important; }
+  .mtotal { width: 100%; }
+  #mUsers .item { flex-wrap: wrap; gap: .4rem; }
+  #mUsers .imid { flex: 1 1 8rem; min-width: 0; }
+  #mUsers .ebtn { flex: 0 0 auto; margin-left: 0; }
+  .hltb-brand-box { flex: 1 1 100%; min-width: 0; padding: .45rem .6rem; }
+  .hltb-styles-box { flex: 1 1 100%; min-width: 0; }
+  .hltb-style-btn { padding: .45rem .35rem; }
+  .hltb-style-lbl { font-size: .68rem; }
+  .hltb-style-val { font-size: 1rem; }
+
+  /* Misc */
   .grid { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); grid-gap: .468rem; }
   .panels { grid-template-columns: 1fr; }
   .efields { grid-template-columns: 1fr; }
   .ebar { flex-wrap: wrap; }
   .esum { flex-basis: 100%; margin: 0 0 .4rem; }
-  .modal .ival { width: 11rem; }
-  #pTop .ival, #pTop .ilast, #grid.list .ival, #grid.list .ilast { width: 10.5rem; }
 }
 </style>
 </head>
 <body>
 <div class="page">
   <div class="topline">
-    <span class="pills">
-      <span class="pill live"><i></i><span id="fw">PS5</span></span>
-      <span class="pill"><span class="pl">Access</span><span class="addr" id="addr"></span></span>
-    </span>
-    <span class="tright">
+    <div class="tabs" role="tablist">
+      <button class="tab on" id="tabDash" type="button" role="tab" aria-selected="true">Dashboard</button>
+      <button class="tab" id="tabTop" type="button" role="tab" aria-selected="false">Top games</button>
+      <button class="tab" id="tabHltb" type="button" role="tab" aria-selected="false">HLTB Sync <span class="tbadge" id="hltbTabBadge" style="display:none">0</span></button>
+    </div>
+    <div class="tright">
       <span class="seg" id="tfmt" role="radiogroup" aria-label="Time format">
         <button type="button" role="radio" data-f="dhm">Day, Hour, Minute</button>
         <button type="button" role="radio" data-f="hm">Hour, Minute</button>
@@ -381,12 +726,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         <span class="track"><i></i></span>
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       </button>
-    </span>
-  </div>
-
-  <div class="tabs" role="tablist">
-    <button class="tab on" id="tabDash" type="button" role="tab" aria-selected="true">Dashboard</button>
-    <button class="tab" id="tabTop" type="button" role="tab" aria-selected="false">Top games</button>
+    </div>
   </div>
 
   <section class="overview">
@@ -395,7 +735,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         <div class="hmain">
           <div class="head">
             <div class="brand">
-              <div class="mark">P</div>
+              <div class="mark" title="PS5-HLTB"><img src="/resources/app_icon.png" alt="PS5-HLTB" class="brand-app-icon"></div>
               <div>
                 <h1><span id="appName"></span> <span class="ver" id="ver"></span></h1>
                 <p class="sub" id="tagline"></p>
@@ -414,16 +754,84 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
             <div class="tile sm"><b id="tNever">-</b><span>Not played</span></div>
             <div class="tile wide"><b id="tAvg">-</b><span>Average / played game</span></div>
           </div>
+          <div class="dash-progress-wrap">
+            <div class="dash-prog-head">
+              <h2>HLTB Game Progress</h2>
+              <div class="dash-prog-users" id="dashProgUserPills"></div>
+            </div>
+            <div id="pDashProgress"></div>
+          </div>
         </div>
         <div class="hside">
           <h2>Play time by user</h2>
           <div id="pUsers"></div>
           <h2 class="gap">By platform</h2>
           <div id="pPlat"></div>
+          <div class="side-access" id="sideAccess" title="Click to view full size QR code">
+            <div class="side-access-tag"><span class="side-access-dot"></span> Console Access</div>
+            <div class="side-qr-box" id="sideQrBox"></div>
+            <div class="side-access-info">
+              <div class="side-access-addr" id="sideAddr">127.0.0.1:7788</div>
+              <div class="side-access-sub">Scan QR code with phone to control &amp; sync HLTB</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <div class="box panel" id="vTop" style="display:none"><div class="cols" id="pTop"></div></div>
+    <div class="box panel" id="vHltb" style="display:none">
+      <div class="hltb-top">
+        <div class="hltb-card">
+          <h3>PS5 Native HLTB Auto-Sync</h3>
+          <p class="sub" id="hltbAcctStatus">Loading HLTB status...</p>
+          <div class="hltb-row">
+            <label for="hltbUserSel" class="elabel" style="margin:0">PS5 Profile:</label>
+            <select id="hltbUserSel" class="hltb-sel"></select>
+            <button class="chip" id="hltbAutoBtn" type="button" style="height:2.5rem;margin:0">PS5 Auto-Sync: ON</button>
+          </div>
+          <div class="tiles" style="margin:.6rem 0">
+            <div class="tile sm"><b id="hSelected">0</b><span>Selected</span></div>
+            <div class="tile sm"><b id="hPend">0</b><span>Pending</span></div>
+            <div class="tile sm"><b id="hSynced">0</b><span>Synced</span></div>
+            <div class="tile wide"><b id="hLast">Never</b><span>Last Synced</span></div>
+          </div>
+          <div class="hltb-row" style="margin-top:.65rem">
+            <button class="refresh primary" id="hltbSyncNow" type="button">Sync Selected Now</button>
+            <button class="refresh" id="hltbSyncAll" type="button" title="Force re-sync all selected games">Force Sync Selected</button>
+            <button class="refresh" id="hltbMatchAll" type="button" title="Auto-match all installed games with HowLongToBeat">Auto-Match All Games</button>
+          </div>
+        </div>
+        <div class="hltb-card">
+          <h3>HowLongToBeat Login (One-Time Setup)</h3>
+          <div id="hltbLoggedOutBox">
+            <p class="sub" style="margin-bottom:.5rem">Sign in once from your phone (via <b>Phone QR</b>). Your session is stored on the PS5 so selected games sync automatically every time you open PS5-HLTB.elf!</p>
+            <div class="hltb-row">
+              <input id="hltbUserInp" class="hltb-txt" type="text" placeholder="HLTB Username" autocomplete="username">
+              <input id="hltbPassInp" class="hltb-txt" type="password" placeholder="HLTB Password" autocomplete="current-password">
+            </div>
+            <div id="hltbCaptchaBox" style="margin:.45rem 0"></div>
+            <div class="hltb-row">
+              <button class="refresh primary" id="hltbLoginBtn" type="button">Sign In &amp; Save to PS5</button>
+              <button class="refresh" id="hltbCookieToggle" type="button">Use Session Cookie</button>
+            </div>
+            <div id="hltbCookieBox" style="display:none;margin-top:.45rem">
+              <div class="hltb-row">
+                <input id="hltbCookieInp" class="hltb-txt" type="text" placeholder="Paste HLTB Cookie header value">
+                <button class="refresh primary" id="hltbCookieBtn" type="button">Save Cookie</button>
+              </div>
+            </div>
+          </div>
+          <div id="hltbLoggedInBox" style="display:none">
+            <p class="sub" style="margin-bottom:.6rem">Your HLTB session is saved on your PS5 (<code>/data/playtime_hltb.db</code>). Whenever you launch <b>PS5-HLTB.elf</b> on your PS5, your selected games will automatically sync in the background!</p>
+            <div class="hltb-row">
+              <button class="refresh" id="hltbLogoutBtn" type="button">Log Out of HLTB</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h2>Select Games to Sync with HLTB (only selected games are synced)</h2>
+      <div class="cols" id="pHltb"></div>
+    </div>
   </section>
 
   <div id="gamesArea">
@@ -434,8 +842,9 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     </div>
     <div class="chips">
       <button class="chip on" data-p="ALL" type="button">ALL</button>
-      <button class="chip" data-p="PS5" type="button">PS5</button>
-      <button class="chip" data-p="PS4" type="button">PS4</button>
+      <button class="chip" data-p="PS5" type="button" aria-label="PS5" title="PS5"><img src="/resources/ps5_logo.png" alt="PS5" class="chip-logo"></button>
+      <button class="chip" data-p="PS4" type="button" aria-label="PS4" title="PS4"><img src="/resources/ps4_logo.webp" alt="PS4" class="chip-logo"></button>
+      <button class="chip" data-p="HOMEBREW" type="button">HOMEBREW</button>
       <button class="chip" id="sort" type="button">SORT: MOST PLAYED</button>
       <button class="chip" id="view" type="button">VIEW: CARDS</button>
       <button class="chip act" id="reload" type="button">Refresh</button>
@@ -466,11 +875,79 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     </div>
     <h2 class="eyebrow">Play time by user</h2>
     <div id="mUsers"></div>
+    <div class="m-hltb" id="mHltbBox">
+      <div class="elabel">HowLongToBeat (<span id="mHltbStatus">Not selected for sync</span>)</div>
+      <div id="mHltbBannerBox"></div>
+      <div id="mHltbProgressBox"></div>
+      <div class="hltb-row" style="margin:.35rem 0 0">
+        <button class="hltb-selbtn" id="mHltbToggle" type="button">+ Select for HLTB Sync</button>
+        <div class="hltb-list-group" id="mHltbListGroup">
+          <span style="font-size:.78rem;font-weight:700;color:var(--muted);padding:0 .35rem">Status:</span>
+          <button type="button" class="hltb-pill playing on" data-list="playing">Playing</button>
+          <button type="button" class="hltb-pill backlog" data-list="backlog">Backlog</button>
+          <button type="button" class="hltb-pill completed" data-list="completed">Completed</button>
+        </div>
+      </div>
+      <div class="hltb-row" style="margin:.35rem 0 0">
+        <input id="mHltbInput" class="hltb-inp" type="number" placeholder="Custom HLTB ID">
+        <button class="refresh" id="mHltbSave" type="button" style="padding:.4rem .8rem;font-size:.82rem">Set HLTB ID</button>
+        <button class="refresh" id="mHltbAuto" type="button" style="padding:.4rem .8rem;font-size:.82rem">Auto-Match</button>
+      </div>
+    </div>
     <div class="mbtns">
       <button class="refresh" id="mClose" type="button">Close</button>
     </div>
   </div>
 </div>
+
+<div class="overlay" id="qrOverlay" style="display:none">
+  <div class="box modal sm" role="dialog" aria-modal="true">
+    <h3 class="mname" style="margin-bottom:.2rem">Open on Your Phone</h3>
+    <p class="sub">Scan with your phone camera on the same Wi-Fi network</p>
+    <div class="qrwrap" id="qrBox"></div>
+    <div class="qrurl" id="qrUrlText"></div>
+    <p class="sub" style="margin-bottom:.75rem">From your phone, open the <b>HLTB Sync</b> tab to log in &amp; sync play time to HowLongToBeat.</p>
+    <div class="mbtns">
+      <button class="refresh primary" id="qrClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="progressOverlay" style="display:none">
+  <div class="box modal" role="dialog" aria-modal="true" style="max-width:48rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div>
+        <h3 class="mname" style="margin:0 0 .2rem">HLTB Game Progress</h3>
+        <p class="sub" id="pProgModalSub" style="margin:0">Tracking playtime against HowLongToBeat completion times</p>
+      </div>
+      <button class="refresh" id="pProgModalCloseTop" type="button" aria-label="Close" style="padding:.35rem .7rem;font-size:.85rem">✕</button>
+    </div>
+    <div id="pProgModalList" style="max-height:65vh;overflow-y:auto;display:flex;flex-direction:column;gap:.45rem;padding-right:.35rem"></div>
+    <div class="mbtns" style="margin-top:.85rem">
+      <button class="refresh primary" id="pProgModalClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="distOverlay" style="display:none">
+  <div class="box modal" role="dialog" aria-modal="true" style="max-width:50rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <div id="distModalBadge"></div>
+        <div>
+          <h3 class="mname" id="distModalTitle" style="margin:0 0 .2rem">Play Time Distribution</h3>
+          <p class="sub" id="distModalSub" style="margin:0"></p>
+        </div>
+      </div>
+      <button class="refresh" id="distModalCloseTop" type="button" aria-label="Close" style="padding:.35rem .7rem;font-size:.85rem">✕</button>
+    </div>
+    <div id="distModalList" style="max-height:65vh;overflow-y:auto;display:flex;flex-direction:column;gap:.45rem;padding-right:.35rem"></div>
+    <div class="mbtns" style="margin-top:.85rem">
+      <button class="refresh primary" id="distModalClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -478,7 +955,30 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var SORTS = ['played', 'recent', 'name', 'id'];
   var SORT_LABELS = { played: 'MOST PLAYED', recent: 'RECENT', name: 'A-Z', id: 'TITLE ID' };
-  var state = { unit: 1, users: [], names: [], games: [], platform: 'ALL', sort: 'played', query: '', maxSec: 0, view: 'cards', tfmt: 'dhm' };
+  var CHART_COLORS = ['#3b82f6', '#f97316', '#10b981', '#a855f7', '#ef4444', '#06b6d4', '#eab308', '#ec4899'];
+  var ALL_PLATFORMS = ['PS5', 'PS4', 'HOMEBREW'];
+  var state = {
+    unit: 1, users: [], names: [], games: [],
+    platforms: { PS5: true, PS4: true, HOMEBREW: true },
+    sort: 'played',
+    query: '', maxSec: 0, view: 'cards', tfmt: 'dhm',
+    hltb: { ps5User: '', hltbUserId: 0, hltbUsername: '', autoSync: 1, lastSync: '', map: {} }
+  };
+  try {
+    var savedPlat = localStorage.getItem('pt-platforms');
+    if (savedPlat) {
+      var parts = savedPlat.split(',');
+      ALL_PLATFORMS.forEach(function (p) { state.platforms[p] = false; });
+      parts.forEach(function (p) { if (state.platforms[p] !== undefined) { state.platforms[p] = true; } });
+      var anyPlat = false;
+      ALL_PLATFORMS.forEach(function (p) { if (state.platforms[p]) { anyPlat = true; } });
+      if (!anyPlat) { ALL_PLATFORMS.forEach(function (p) { state.platforms[p] = true; }); }
+    }
+  } catch (err) {}
+  try {
+    var savedSort = localStorage.getItem('pt-sort');
+    if (savedSort && SORTS.indexOf(savedSort) !== -1) { state.sort = savedSort; }
+  } catch (err) {}
   var grid = document.getElementById('grid');
   var empty = document.getElementById('empty');
   var meta = document.getElementById('meta');
@@ -486,6 +986,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   var toastTimer = null;
   var openGame = null;
   var lastFocus = null;
+  var serverUrl = location.origin;
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
@@ -495,6 +996,157 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     return n;
   }
   function clear(node) { while (node.firstChild) { node.removeChild(node.firstChild); } }
+
+  /* ---------- Pure JS ISO/IEC 18004 QR Code SVG Generator (Byte Mode, ECC L) ---------- */
+  function makeQrSvg(text) {
+    /* Supports Version 2 (25x25, up to 32 bytes) and Version 3 (29x29, up to 53 bytes) */
+    var bytes = [];
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charCodeAt(i);
+      if (c < 128) { bytes.push(c); }
+      else if (c < 2048) { bytes.push(192 | (c >> 6), 128 | (c & 63)); }
+      else { bytes.push(224 | (c >> 12), 128 | ((c >> 6) & 63), 128 | (c & 63)); }
+    }
+    var ver = bytes.length <= 32 ? 2 : 3;
+    var size = ver === 2 ? 25 : 29;
+    var dataCap = ver === 2 ? 34 : 55;
+    var ecLen = ver === 2 ? 10 : 15;
+
+    var bits = [];
+    function pushBits(val, len) {
+      for (var b = len - 1; b >= 0; b--) { bits.push((val >> b) & 1); }
+    }
+    pushBits(4, 4); /* Byte mode 0100 */
+    pushBits(bytes.length, 8);
+    for (var j = 0; j < bytes.length; j++) { pushBits(bytes[j], 8); }
+    for (var t = 0; t < 4 && bits.length < dataCap * 8; t++) { bits.push(0); }
+    while (bits.length % 8 !== 0) { bits.push(0); }
+    var data = [];
+    for (var k = 0; k < bits.length; k += 8) {
+      var byteVal = 0;
+      for (var b2 = 0; b2 < 8; b2++) { byteVal = (byteVal << 1) | bits[k + b2]; }
+      data.push(byteVal);
+    }
+    var pad = 0;
+    while (data.length < dataCap) { data.push((pad++ & 1) ? 17 : 236); }
+
+    /* GF(256) Reed-Solomon */
+    var exp = new Array(512), log = new Array(256);
+    var x = 1;
+    for (var e = 0; e < 255; e++) {
+      exp[e] = x; log[x] = e;
+      x <<= 1; if (x & 256) { x ^= 285; }
+    }
+    for (e = 255; e < 512; e++) { exp[e] = exp[e - 255]; }
+    var gen = [1];
+    for (var g = 0; g < ecLen; g++) {
+      var next = new Array(gen.length + 1);
+      for (var n = 0; n < next.length; n++) { next[n] = 0; }
+      for (var m = 0; m < gen.length; m++) {
+        next[m] ^= gen[m];
+        next[m + 1] ^= exp[log[gen[m]] + g];
+      }
+      gen = next;
+    }
+    var rem = new Array(ecLen);
+    for (var r0 = 0; r0 < ecLen; r0++) { rem[r0] = 0; }
+    for (var d = 0; d < data.length; d++) {
+      var factor = data[d] ^ rem.shift();
+      rem.push(0);
+      if (factor !== 0) {
+        for (var rg = 0; rg < ecLen; rg++) {
+          rem[rg] ^= exp[log[gen[rg + 1]] + log[factor]];
+        }
+      }
+    }
+    var codewords = data.concat(rem);
+
+    var mat = [], isFunc = [];
+    for (var row = 0; row < size; row++) {
+      mat.push(new Array(size));
+      isFunc.push(new Array(size));
+    }
+    function setMod(r, c, v) { mat[r][c] = v ? 1 : 0; isFunc[r][c] = true; }
+    function finder(r, c) {
+      for (var dy = -1; dy <= 7; dy++) {
+        for (var dx = -1; dx <= 7; dx++) {
+          var yy = r + dy, xx = c + dx;
+          if (yy >= 0 && yy < size && xx >= 0 && xx < size) {
+            var on = (dx >= 0 && dx <= 6 && (dy === 0 || dy === 6)) ||
+                     (dy >= 0 && dy <= 6 && (dx === 0 || dx === 6)) ||
+                     (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4);
+            setMod(yy, xx, on);
+          }
+        }
+      }
+    }
+    finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+    for (var ti = 8; ti < size - 8; ti++) {
+      setMod(6, ti, ti % 2 === 0);
+      setMod(ti, 6, ti % 2 === 0);
+    }
+    var ac = ver === 2 ? 18 : 22;
+    for (var ay = -2; ay <= 2; ay++) {
+      for (var ax = -2; ax <= 2; ax++) {
+        setMod(ac + ay, ac + ax, Math.max(Math.abs(ax), Math.abs(ay)) !== 1);
+      }
+    }
+    for (var fi = 0; fi < 9; fi++) {
+      if (fi !== 6) { setMod(8, fi, 0); setMod(fi, 8, 0); }
+    }
+    for (var fj = 0; fj < 8; fj++) {
+      setMod(8, size - 1 - fj, 0);
+      setMod(size - 1 - fj, 8, 0);
+    }
+    setMod(size - 8, 8, 1);
+
+    var bitIdx = 0, totalBits = codewords.length * 8;
+    var up = true;
+    for (var col = size - 1; col >= 1; col -= 2) {
+      if (col === 6) { col = 5; }
+      for (var step = 0; step < size; step++) {
+        var rr = up ? (size - 1 - step) : step;
+        for (var cc = 0; cc < 2; cc++) {
+          var cx = col - cc;
+          if (!isFunc[rr][cx]) {
+            var bit = 0;
+            if (bitIdx < totalBits) {
+              bit = (codewords[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1;
+              bitIdx++;
+            }
+            if ((rr + cx) % 2 === 0) { bit ^= 1; } /* Mask 0 */
+            mat[rr][cx] = bit;
+          }
+        }
+      }
+      up = !up;
+    }
+    /* Format info for Level L (01), Mask 0 (000) = 0x77C4 */
+    var fmt = 0x77C4;
+    for (var f = 0; f < 15; f++) {
+      var fbit = (fmt >> f) & 1;
+      if (f < 6) { mat[f][8] = fbit; }
+      else if (f < 8) { mat[f + 1][8] = fbit; }
+      else { mat[8][14 - f] = fbit; }
+      if (f < 8) { mat[8][size - 1 - f] = fbit; }
+      else { mat[size - 15 + f][8] = fbit; }
+    }
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + (size + 4) + ' ' + (size + 4));
+    svg.setAttribute('shape-rendering', 'crispEdges');
+    var dPath = '';
+    for (var y = 0; y < size; y++) {
+      for (var x2 = 0; x2 < size; x2++) {
+        if (mat[y][x2]) { dPath += 'M' + (x2 + 2) + ',' + (y + 2) + 'h1v1h-1z'; }
+      }
+    }
+    var pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    pathEl.setAttribute('d', dPath);
+    pathEl.setAttribute('fill', '#000000');
+    svg.appendChild(pathEl);
+    return svg;
+  }
 
   /* ---------- theme switch (dark / light) ---------- */
   function applyTheme(t, save) {
@@ -529,10 +1181,36 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   function fmtNum(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   function plural(n, one, many) { return fmtNum(n) + ' ' + (n === 1 ? one : many); }
 
-  /* Time format chosen by the user: 'dhm' = days, hours, minutes; 'hm' = hours, minutes; 'h' = hours only */
   function fmtHours(sec) {
     var parts = String(Math.round(sec / 360) / 10).split('.');
     return fmtNum(parts[0]) + (parts[1] ? '.' + parts[1] : '');
+  }
+
+  function fmtHltbTime(sec) {
+    sec = Math.round(sec);
+    if (sec <= 0) { return '--'; }
+    var hrs = sec / 3600;
+    var halfs = Math.round(hrs * 2);
+    if (halfs <= 0) { return '½ Hour'; }
+    if (halfs % 2 !== 0) {
+      var whole = Math.floor(halfs / 2);
+      return (whole > 0 ? whole : '') + '½ Hours';
+    }
+    var whole = halfs / 2;
+    return whole + (whole === 1 ? ' Hour' : ' Hours');
+  }
+
+  function fmtHltbShortTime(sec) {
+    sec = Math.round(sec);
+    if (sec <= 0) { return '--'; }
+    var hrs = sec / 3600;
+    var halfs = Math.round(hrs * 2);
+    if (halfs <= 0) { return '½h'; }
+    if (halfs % 2 !== 0) {
+      var whole = Math.floor(halfs / 2);
+      return (whole > 0 ? whole : '') + '½h';
+    }
+    return (halfs / 2) + 'h';
   }
 
   function fmtLong(sec) {
@@ -563,7 +1241,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     toastEl.textContent = text;
     toastEl.className = 'toast show';
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toastEl.className = 'toast'; }, 1800);
+    toastTimer = setTimeout(function () { toastEl.className = 'toast'; }, 2400);
   }
 
   function showEmpty(text, isError) {
@@ -584,7 +1262,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     return art;
   }
 
-  /* One list row: lead (rank/icon/avatar), name + optional sub line, value. */
   function makeItem(lead, name, value, sub, onclick, dim) {
     var row = el(onclick ? 'button' : 'div', onclick ? 'item' : 'item static');
     if (onclick) { row.type = 'button'; row.onclick = onclick; }
@@ -598,7 +1275,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     return row;
   }
 
-  /* Title ID chip (PPSA / CUSA prefix + number), used in every list, card and dialog */
   function idChip(id, cls) {
     var chip = el('div', /^CUSA/.test(id) ? cls + ' ps4' : cls);
     chip.appendChild(el('b', null, id.substring(0, 4)));
@@ -606,7 +1282,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     return chip;
   }
 
-  /* Top games row: rank, art, name + title ID chip; time pill over last-played chip */
   function makeTopItem(g, n) {
     var row = el('button', 'item');
     row.type = 'button';
@@ -616,6 +1291,11 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     var mid = el('div', 'imid');
     mid.appendChild(el('div', 'iname', g.name));
     mid.appendChild(idChip(g.id, 'idchip'));
+    var times = gameHltbTimes(g);
+    if (times && (times.main > 0 || times.all > 0)) {
+      var uSec = (g.userSec && g.userSec[activeHltbUserIdx()]) || 0;
+      mid.appendChild(makeProgressBar(uSec, times.main || times.all, 'HLTB', true));
+    }
     row.appendChild(mid);
     var right = el('div', 'iright');
     right.appendChild(el('div', g.sec > 0 ? 'ival' : 'ival dim', g.sec > 0 ? fmtLong(g.sec) : 'Not played yet'));
@@ -626,6 +1306,164 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 
   function avatar(name, cls) {
     return el('div', cls ? 'avatar ' + cls : 'avatar', (name || '?').charAt(0).toUpperCase());
+  }
+
+  /* ---------- HLTB state helpers ---------- */
+  function activeHltbUserIdx() {
+    var u = state.hltb.ps5User;
+    var idx = state.users.indexOf(u);
+    return idx >= 0 ? idx : 0;
+  }
+
+  function activeHltbUserId() {
+    if (!state.users.length) { return ''; }
+    return state.users[activeHltbUserIdx()];
+  }
+
+  /* Returns the HLTB entry strictly owned by the active PS5 user */
+  function userHltbEntry(titleId) {
+    var u = activeHltbUserId();
+    if (u && state.hltb.map[u + ':' + titleId]) {
+      return state.hltb.map[u + ':' + titleId];
+    }
+    return null;
+  }
+
+  /* Returns any HLTB entry for titleId to share matched HLTB game ID & completion time targets across users */
+  function sharedHltbEntry(titleId) {
+    var u = activeHltbUserId();
+    if (u && state.hltb.map[u + ':' + titleId]) {
+      return state.hltb.map[u + ':' + titleId];
+    }
+    for (var k = 0; k < state.users.length; k++) {
+      var key = state.users[k] + ':' + titleId;
+      if (state.hltb.map[key]) { return state.hltb.map[key]; }
+    }
+    if (state.hltb.map['0:' + titleId]) { return state.hltb.map['0:' + titleId]; }
+    if (state.hltb.map[':' + titleId]) { return state.hltb.map[':' + titleId]; }
+    return null;
+  }
+
+  function hltbEntry(titleId) {
+    return sharedHltbEntry(titleId);
+  }
+
+  function isHomebrew(game) {
+    if (!game) { return false; }
+    if (game.platform === 'HOMEBREW') { return true; }
+    if (/^(PPSA9|CUSA9)/i.test(game.id)) { return true; }
+    var n = (game.name || '').toLowerCase();
+    return ['breeze', 'prosperoeden', 'prosperolight', 'prosperostore', 'ps5sx2'].indexOf(n) !== -1;
+  }
+
+  function gameSyncStatus(game) {
+    if (isHomebrew(game)) {
+      return { state: 'unselected', selected: false, sec: 0, syncedSec: 0, entry: null, listType: 'playing' };
+    }
+    var uIdx = activeHltbUserIdx();
+    var sec = (game.userSec && game.userSec[uIdx]) ? game.userSec[uIdx] : 0;
+    var uEntry = userHltbEntry(game.id);
+    var shared = sharedHltbEntry(game.id);
+    var entry = uEntry || shared;
+    var selected = (uEntry && uEntry.selected) ? true : false;
+    var listType = (uEntry && uEntry.listType) ? uEntry.listType : 'playing';
+    var syncedSec = uEntry ? (uEntry.syncedSec !== undefined ? uEntry.syncedSec : -1) : -1;
+    if (!selected) {
+      return { state: 'unselected', selected: false, sec: sec, syncedSec: syncedSec, entry: entry, listType: listType };
+    }
+    var isSynced = entry && entry.updatedAt && entry.hltbId > 0 && (syncedSec >= 0 && Math.abs(sec - syncedSec) < 60);
+    if (isSynced) {
+      return { state: 'synced', selected: true, sec: sec, syncedSec: syncedSec, entry: entry, listType: listType };
+    }
+    return { state: 'pending', selected: true, sec: sec, syncedSec: syncedSec, entry: entry, listType: listType };
+  }
+
+  function gameHltbTimes(game) {
+    if (!game) { return null; }
+    var entry = hltbEntry(game.id);
+    if (!entry || !entry.hltbId) { return null; }
+    var main = entry.compMain || 0;
+    var plus = entry.compPlus || 0;
+    var comp = entry.comp100 || 0;
+    var all = entry.compAll || 0;
+    if (!all && (main || plus || comp)) {
+      var sum = 0, cnt = 0;
+      if (main > 0) { sum += main; cnt++; }
+      if (plus > 0) { sum += plus; cnt++; }
+      if (comp > 0) { sum += comp; cnt++; }
+      all = cnt > 0 ? Math.round(sum / cnt) : 0;
+    }
+    if (!main && !plus && !comp && !all) { return null; }
+    return {
+      entry: entry,
+      main: main,
+      plus: plus,
+      comp: comp,
+      all: all
+    };
+  }
+
+  function makeProgressBar(playedSec, targetSec, label, compact) {
+    var bar = el('div', compact ? 'hltb-pbar compact' : 'hltb-pbar');
+    if (targetSec <= 0) { return bar; }
+    var pct = Math.min(Math.round((playedSec / targetSec) * 100), 999);
+    var isDone = playedSec >= targetSec;
+    var isOver = pct > 100;
+
+    var head = el('div', 'hltb-pbar-head');
+    var left = el('span');
+    if (label) {
+      var bLabel = el('b', null, label + ': ');
+      left.appendChild(bLabel);
+    }
+    left.appendChild(document.createTextNode((playedSec > 0 ? fmtLong(playedSec) : '0h') + ' / ' + fmtHltbTime(targetSec)));
+    head.appendChild(left);
+
+    var pctSpan = el('span', isDone ? 'hltb-pbar-pct done' : 'hltb-pbar-pct', pct + '%');
+    head.appendChild(pctSpan);
+    bar.appendChild(head);
+
+    var track = el('div', 'hltb-pbar-track');
+    var fill = el('div', 'hltb-pbar-fill' + (isOver ? ' over' : (isDone ? ' done' : '')));
+    fill.style.width = Math.min(pct, 100) + '%';
+    track.appendChild(fill);
+    bar.appendChild(track);
+    return bar;
+  }
+
+  function makeHltbBanner(game, activeTargetKey, onTargetChange) {
+    var times = gameHltbTimes(game);
+    if (!times) { return null; }
+    var wrap = el('div', 'hltb-banner');
+
+    var brand = el('div', 'hltb-brand-box');
+    brand.appendChild(el('div', 'hltb-brand-lbl', 'HOWLONGTOBEAT'));
+    brand.appendChild(el('div', 'hltb-brand-val', times.all > 0 ? fmtHltbTime(times.all) : (times.main > 0 ? fmtHltbTime(times.main) : '--')));
+    wrap.appendChild(brand);
+
+    var styles = el('div', 'hltb-styles-box');
+    var stylesDef = [
+      { key: 'main', label: 'Main Story', sec: times.main },
+      { key: 'plus', label: 'Main + Sides', sec: times.plus },
+      { key: 'comp', label: 'Completionist', sec: times.comp }
+    ];
+
+    stylesDef.forEach(function (st) {
+      var btn = el('button', 'hltb-style-btn' + (st.key === activeTargetKey ? ' active' : ''));
+      btn.type = 'button';
+      btn.title = 'Track progress against ' + st.label;
+      btn.appendChild(el('div', 'hltb-style-lbl', st.label));
+      btn.appendChild(el('div', 'hltb-style-val', st.sec > 0 ? fmtHltbTime(st.sec) : '--'));
+      if (onTargetChange) {
+        btn.onclick = function (e) {
+          e.stopPropagation();
+          onTargetChange(st.key);
+        };
+      }
+      styles.appendChild(btn);
+    });
+    wrap.appendChild(styles);
+    return wrap;
   }
 
   /* ---------- data ---------- */
@@ -639,6 +1477,9 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     state.maxSec = 0;
     for (i = 0; i < state.games.length; i++) {
       g = state.games[i];
+      if (isHomebrew(g)) {
+        g.platform = 'HOMEBREW';
+      }
       g.userSec = [];
       g.sec = 0;
       g.lastTs = '';
@@ -650,6 +1491,37 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       }
       if (g.sec > state.maxSec) { state.maxSec = g.sec; }
     }
+    if (!state.hltb.ps5User && state.users.length) {
+      state.hltb.ps5User = state.users[0];
+    }
+  }
+
+  function prepareHltb(h) {
+    state.hltb.ps5User = h.ps5User || (state.users[0] || '');
+    state.hltb.accounts = h.accounts || {};
+    state.hltb.loggedIn = h.loggedIn ? 1 : 0;
+    state.hltb.hltbUserId = h.hltbUserId || 0;
+    state.hltb.hltbUsername = h.hltbUsername || '';
+    state.hltb.autoSync = h.autoSync !== undefined ? h.autoSync : 1;
+    state.hltb.lastSync = h.lastSync || '';
+    state.hltb.map = {};
+    var list = h.games || [];
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      state.hltb.map[item.user + ':' + item.id] = item;
+    }
+  }
+
+  function activeHltbAccount() {
+    var uId = activeHltbUserId();
+    var acct = (state.hltb.accounts && state.hltb.accounts[uId]) ? state.hltb.accounts[uId] : {
+      loggedIn: state.hltb.loggedIn ? 1 : 0,
+      hltbUserId: state.hltb.hltbUserId || 0,
+      hltbUsername: state.hltb.hltbUsername || '',
+      autoSync: state.hltb.autoSync !== undefined ? state.hltb.autoSync : 1,
+      lastSync: state.hltb.lastSync || ''
+    };
+    return acct;
   }
 
   function userLabel(k) {
@@ -664,7 +1536,8 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   function visibleGames() {
     var q = state.query.toLowerCase();
     var list = state.games.filter(function (g) {
-      if (state.platform !== 'ALL' && g.platform !== state.platform) { return false; }
+      var p = g.platform || 'PS4';
+      if (!state.platforms[p]) { return false; }
       if (!q) { return true; }
       return g.name.toLowerCase().indexOf(q) !== -1 || g.id.toLowerCase().indexOf(q) !== -1;
     });
@@ -682,8 +1555,35 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     return list;
   }
 
-  /* ---------- dashboard tabs (most played / recent) ---------- */
-  var TABS = ['Dash', 'Top'];
+  /* ---------- dashboard tabs ---------- */
+  var hcaptchaWidgetId = null;
+  var hcaptchaLoading = false;
+  function ensureHltbCaptcha() {
+    if (activeHltbAccount().loggedIn) { return; }
+    var box = $('hltbCaptchaBox');
+    if (!box) { return; }
+    if (window.hcaptcha && hcaptchaWidgetId === null) {
+      try {
+        clear(box);
+        hcaptchaWidgetId = window.hcaptcha.render(box, {
+          sitekey: '8b78699e-e0b2-4e34-8f10-c6338ba1b6dd',
+          theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+        });
+      } catch (e) {}
+      return;
+    }
+    if (!hcaptchaLoading && !window.hcaptcha) {
+      hcaptchaLoading = true;
+      window.onHltbCaptchaLoad = function () { ensureHltbCaptcha(); };
+      var s = document.createElement('script');
+      s.src = 'https://js.hcaptcha.com/1/api.js?render=explicit&onload=onHltbCaptchaLoad';
+      s.async = true;
+      s.defer = true;
+      document.head.appendChild(s);
+    }
+  }
+
+  var TABS = ['Dash', 'Top', 'Hltb'];
   function showTab(which) {
     var i, on;
     for (i = 0; i < TABS.length; i++) {
@@ -693,27 +1593,302 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       $('tab' + TABS[i]).setAttribute('aria-selected', on ? 'true' : 'false');
     }
     $('gamesArea').style.display = which === 'Dash' ? 'block' : 'none';
+    if (which === 'Hltb') { ensureHltbCaptcha(); }
     try { localStorage.setItem('pt-tab', which); } catch (err) {}
   }
   $('tabDash').onclick = function () { showTab('Dash'); };
   $('tabTop').onclick = function () { showTab('Top'); };
-  try { var st = localStorage.getItem('pt-tab'); if (st === 'Top') { showTab(st); } } catch (err) {}
+  $('tabHltb').onclick = function () { showTab('Hltb'); };
+  try {
+    var qParams = new URLSearchParams(location.search);
+    var qTab = qParams.get('tab');
+    if (qTab && /top/i.test(qTab)) { showTab('Top'); }
+    else if (qTab && /hltb/i.test(qTab)) { showTab('Hltb'); }
+    else {
+      var st = localStorage.getItem('pt-tab');
+      if (st === 'Top' || st === 'Hltb') { showTab(st); }
+    }
+  } catch (err) {}
 
+  function makeDashProgressItem(g, isModal) {
+    var times = gameHltbTimes(g);
+    var targetSec = (times && (times.main || times.plus || times.comp || times.all)) || 0;
+    var item = el('div', 'prog-item');
+    item.setAttribute('role', 'button');
+    item.tabIndex = 0;
+    item.onclick = function () {
+      if (isModal) { closeProgressModal(); }
+      showDetail(g, this);
+    };
+    item.onkeydown = function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.keyCode === 13 || e.keyCode === 32) {
+        e.preventDefault();
+        item.onclick();
+      }
+    };
+    item.appendChild(makeArt(g, 'prog-thumb'));
+
+    var mid = el('div', 'prog-mid');
+    var topRow = el('div', 'prog-toprow');
+    topRow.style.display = 'flex';
+    topRow.style.alignItems = 'center';
+    topRow.style.justifyContent = 'space-between';
+    topRow.style.gap = '.5rem';
+    topRow.style.marginBottom = '.15rem';
+
+    var nameEl = el('div', 'prog-title', g.name);
+    nameEl.title = g.name;
+    topRow.appendChild(nameEl);
+
+    if (times) {
+      var badges = el('div', 'prog-badges');
+      badges.style.display = 'flex';
+      badges.style.alignItems = 'center';
+      badges.style.gap = '.35rem';
+      badges.style.flex = '0 0 auto';
+
+      if (times.plus > 0) {
+        var bPlus = el('span', 'pbadge-stat');
+        bPlus.innerHTML = '<span style="color:var(--muted);font-weight:600">+Sides:</span> <b style="color:var(--text)">' + fmtHltbShortTime(times.plus) + '</b>';
+        badges.appendChild(bPlus);
+      }
+      if (times.comp > 0) {
+        var bComp = el('span', 'pbadge-stat');
+        bComp.innerHTML = '<span style="color:var(--muted);font-weight:600">100%:</span> <b style="color:var(--text)">' + fmtHltbShortTime(times.comp) + '</b>';
+        badges.appendChild(bComp);
+      }
+      topRow.appendChild(badges);
+    }
+    mid.appendChild(topRow);
+
+    var label = (times && times.main > 0) ? 'Main Story' : 'Target';
+    var uIdx = activeHltbUserIdx();
+    var userPlayedSec = (g.userSec && g.userSec[uIdx] !== undefined) ? g.userSec[uIdx] : 0;
+    mid.appendChild(makeProgressBar(userPlayedSec, targetSec, label, false));
+    item.appendChild(mid);
+    return item;
+  }
+
+  function openProgressModal(progGames) {
+    var list = $('pProgModalList');
+    clear(list);
+    var uIdx = activeHltbUserIdx();
+    var uName = userLabel(uIdx);
+    $('pProgModalSub').textContent = 'Tracking playtime for ' + uName + ' against HowLongToBeat completion times for ' + plural(progGames.length, 'game', 'games');
+    for (var i = 0; i < progGames.length; i++) {
+      list.appendChild(makeDashProgressItem(progGames[i], true));
+    }
+    $('progressOverlay').style.display = 'flex';
+    $('pProgModalClose').focus();
+  }
+
+  function closeProgressModal() {
+    $('progressOverlay').style.display = 'none';
+  }
+
+  function closeDistModal() {
+    $('distOverlay').style.display = 'none';
+  }
+
+  function makeDistItem(g, sec, totalSec, color) {
+    var item = el('div', 'prog-item');
+    item.setAttribute('role', 'button');
+    item.tabIndex = 0;
+    item.onclick = function () {
+      closeDistModal();
+      showDetail(g, this);
+    };
+    item.onkeydown = function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.keyCode === 13 || e.keyCode === 32) {
+        e.preventDefault();
+        item.onclick();
+      }
+    };
+    item.appendChild(makeArt(g, 'prog-thumb'));
+
+    var mid = el('div', 'prog-mid');
+    var topRow = el('div', 'prog-toprow');
+    topRow.style.display = 'flex';
+    topRow.style.alignItems = 'center';
+    topRow.style.justifyContent = 'space-between';
+    topRow.style.gap = '.45rem';
+    topRow.style.marginBottom = '.15rem';
+
+    var leftCol = el('div');
+    leftCol.style.display = 'flex';
+    leftCol.style.alignItems = 'center';
+    leftCol.style.gap = '.4rem';
+    leftCol.style.minWidth = '0';
+    leftCol.style.overflow = 'hidden';
+
+    var nameEl = el('span', 'prog-title', g.name);
+    nameEl.style.fontSize = '.86rem';
+    leftCol.appendChild(nameEl);
+    leftCol.appendChild(idChip(g.id, 'idchip'));
+    topRow.appendChild(leftCol);
+
+    var pct = totalSec > 0 ? Math.round((sec / totalSec) * 100) : 0;
+    var rightCol = el('div');
+    rightCol.style.flex = '0 0 auto';
+    rightCol.style.textAlign = 'right';
+    rightCol.style.fontSize = '.8rem';
+    rightCol.style.fontWeight = '700';
+
+    if (sec > 0) {
+      rightCol.innerHTML = '<span style="color:var(--green)">' + fmtLong(sec) + '</span> <b style="color:var(--text);margin-left:.35rem">(' + pct + '%)</b>';
+    } else {
+      rightCol.innerHTML = '<span style="color:var(--muted)">Not played</span>';
+    }
+    topRow.appendChild(rightCol);
+    mid.appendChild(topRow);
+
+    var track = el('div', 'hltb-pbar-track');
+    track.style.height = '4px';
+    track.style.marginTop = '.18rem';
+    var fill = el('div');
+    fill.style.height = '100%';
+    fill.style.borderRadius = '999px';
+    fill.style.background = color || 'var(--grad)';
+    fill.style.width = Math.min(pct, 100) + '%';
+    fill.style.transition = 'width .35s ease-out';
+    track.appendChild(fill);
+    mid.appendChild(track);
+
+    item.appendChild(mid);
+    return item;
+  }
+
+  function openUserDistributionModal(k) {
+    var uName = userLabel(k);
+    var userColor = CHART_COLORS[k % CHART_COLORS.length];
+    var uSec = 0;
+    var playedCount = 0;
+    for (var i = 0; i < state.games.length; i++) {
+      var s = (state.games[i].userSec && state.games[i].userSec[k]) || 0;
+      uSec += s;
+      if (s > 0) { playedCount++; }
+    }
+
+    var badgeBox = $('distModalBadge');
+    clear(badgeBox);
+    var av = avatar(uName);
+    av.style.background = userColor;
+    av.style.width = '2.8rem';
+    av.style.height = '2.8rem';
+    av.style.fontSize = '1.2rem';
+    badgeBox.appendChild(av);
+
+    $('distModalTitle').textContent = uName + ' \u2014 Play Time Distribution';
+    var allTotal = 0;
+    for (var j = 0; j < state.games.length; j++) { allTotal += state.games[j].sec; }
+    var sharePct = allTotal > 0 ? Math.round((uSec / allTotal) * 100) : 0;
+    $('distModalSub').textContent = (uSec > 0 ? fmtLong(uSec) : '0 hours') +
+      ' across ' + plural(playedCount, 'game', 'games') + ' played' +
+      (allTotal > 0 ? ' (' + sharePct + '% of console total)' : '');
+
+    var list = $('distModalList');
+    clear(list);
+
+    var userGames = state.games.slice().sort(function (a, b) {
+      var sa = (a.userSec && a.userSec[k]) || 0;
+      var sb = (b.userSec && b.userSec[k]) || 0;
+      if (sb !== sa) { return sb - sa; }
+      return a.name.localeCompare(b.name);
+    });
+
+    var playedGames = userGames.filter(function (g) { return ((g.userSec && g.userSec[k]) || 0) > 0; });
+    if (!playedGames.length) {
+      list.appendChild(el('div', 'none', 'No games played yet by ' + uName + '.'));
+    } else {
+      for (var gi = 0; gi < playedGames.length; gi++) {
+        list.appendChild(makeDistItem(playedGames[gi], (playedGames[gi].userSec && playedGames[gi].userSec[k]) || 0, uSec, userColor));
+      }
+    }
+
+    $('distOverlay').style.display = 'flex';
+    $('distModalClose').focus();
+  }
+
+  function openPlatformDistributionModal(pKey) {
+    var pLabel = pKey === 'PS5' ? 'PS5 games' : (pKey === 'PS4' ? 'PS4 games' : 'Homebrew apps');
+    var pColor = pKey === 'PS5' ? '#3b82f6' : (pKey === 'PS4' ? '#f59e0b' : '#c084fc');
+    var pAvCls = pKey === 'PS5' ? 'avatar sq' : (pKey === 'PS4' ? 'avatar sq amber' : 'avatar sq hb');
+    var pTag = pKey === 'PS5' ? 'PS5' : (pKey === 'PS4' ? 'PS4' : 'HB');
+
+    var pSec = 0;
+    var installedCount = 0;
+    var platGames = state.games.filter(function (g) { return (g.platform || 'PS4') === pKey; });
+    for (var i = 0; i < platGames.length; i++) {
+      pSec += platGames[i].sec;
+      installedCount++;
+    }
+
+    platGames.sort(function (a, b) {
+      if (b.sec !== a.sec) { return b.sec - a.sec; }
+      return a.name.localeCompare(b.name);
+    });
+
+    var badgeBox = $('distModalBadge');
+    clear(badgeBox);
+    var av = el('div', pAvCls);
+    av.style.width = '2.8rem';
+    av.style.height = '2.8rem';
+    if (pKey === 'PS5') {
+      var img5 = el('img', 'plat-av-img');
+      img5.src = '/resources/ps5_logo.png';
+      img5.alt = 'PS5';
+      av.appendChild(img5);
+    } else if (pKey === 'PS4') {
+      var img4 = el('img', 'plat-av-img');
+      img4.src = '/resources/ps4_logo.webp';
+      img4.alt = 'PS4';
+      av.appendChild(img4);
+    } else {
+      av.textContent = pTag;
+      av.style.fontSize = '1rem';
+    }
+    badgeBox.appendChild(av);
+
+    $('distModalTitle').textContent = pLabel + ' \u2014 Play Time Distribution';
+    var allTotal = 0;
+    for (var j = 0; j < state.games.length; j++) { allTotal += state.games[j].sec; }
+    var sharePct = allTotal > 0 ? Math.round((pSec / allTotal) * 100) : 0;
+    $('distModalSub').textContent = (pSec > 0 ? fmtLong(pSec) : '0 hours') +
+      ' across ' + plural(installedCount, 'game', 'games') + ' installed' +
+      (allTotal > 0 ? ' (' + sharePct + '% of console total)' : '');
+
+    var list = $('distModalList');
+    clear(list);
+
+    if (!platGames.length) {
+      list.appendChild(el('div', 'none', 'No installed ' + pLabel + ' found.'));
+    } else {
+      for (var gi = 0; gi < platGames.length; gi++) {
+        list.appendChild(makeDistItem(platGames[gi], platGames[gi].sec, pSec, pColor));
+      }
+    }
+
+    $('distOverlay').style.display = 'flex';
+    $('distModalClose').focus();
+  }
 
   /* ---------- dashboard ---------- */
   function renderDashboard() {
     var games = state.games;
     var total = 0, played = 0, i, k;
-    var plat = { PS5: 0, PS4: 0 };
+    var plat = { PS5: 0, PS4: 0, HOMEBREW: 0 };
     var userTotals = [];
     var userGames = [];
-    var count = { PS5: 0, PS4: 0 };
+    var count = { PS5: 0, PS4: 0, HOMEBREW: 0 };
     for (k = 0; k < state.users.length; k++) { userTotals.push(0); userGames.push(0); }
     for (i = 0; i < games.length; i++) {
       total += games[i].sec;
       if (games[i].sec > 0) { played++; }
-      plat[games[i].platform] += games[i].sec;
-      count[games[i].platform]++;
+      var pKey = games[i].platform || 'PS4';
+      if (!plat[pKey]) { plat[pKey] = 0; }
+      if (!count[pKey]) { count[pKey] = 0; }
+      plat[pKey] += games[i].sec;
+      count[pKey]++;
       for (k = 0; k < state.users.length; k++) {
         userTotals[k] += games[i].userSec[k];
         if (games[i].userSec[k] > 0) { userGames[k]++; }
@@ -729,7 +1904,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     $('tNever').textContent = games.length - played;
     $('tAvg').textContent = played ? (fmtLong(total / played) || '-') : '-';
 
-    /* most played */
     var top = games.slice().sort(byPlayed).filter(function (g) { return g.sec > 0; }).slice(0, 15);
     var pTop = $('pTop');
     clear(pTop);
@@ -740,30 +1914,362 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       })(top[i], i + 1);
     }
 
-    /* users */
     var pUsers = $('pUsers');
     clear(pUsers);
     if (!state.users.length) { pUsers.appendChild(el('div', 'none', 'No users found.')); }
     for (k = 0; k < state.users.length; k++) {
-      pUsers.appendChild(makeItem([avatar(userLabel(k))], userLabel(k),
-        userTotals[k] ? fmtLong(userTotals[k]) : 'none',
-        el('span', userGames[k] ? 'gstamp' : 'gstamp zero', plural(userGames[k], 'game', 'games') + ' played'), null, !userTotals[k]));
+      (function (idx) {
+        var userColor = CHART_COLORS[idx % CHART_COLORS.length];
+        var av = avatar(userLabel(idx));
+        av.style.background = userColor;
+        pUsers.appendChild(makeItem([av], userLabel(idx),
+          userTotals[idx] ? fmtLong(userTotals[idx]) : 'none',
+          el('span', userGames[idx] ? 'gstamp' : 'gstamp zero', plural(userGames[idx], 'game', 'games') + ' played'),
+          function () { openUserDistributionModal(idx); },
+          !userTotals[idx]));
+      })(k);
     }
 
     renderUserChart(userTotals, total);
 
-    /* platform */
     var pPlat = $('pPlat');
     clear(pPlat);
-    pPlat.appendChild(makeItem([el('div', 'avatar sq', 'PS5')], 'PS5 games',
-      plat.PS5 ? fmtLong(plat.PS5) : 'none', el('span', count.PS5 ? 'gstamp' : 'gstamp zero', plural(count.PS5, 'game', 'games') + ' installed'), null, !plat.PS5));
-    pPlat.appendChild(makeItem([el('div', 'avatar sq amber', 'PS4')], 'PS4 games',
-      plat.PS4 ? fmtLong(plat.PS4) : 'none', el('span', count.PS4 ? 'gstamp amber' : 'gstamp zero', plural(count.PS4, 'game', 'games') + ' installed'), null, !plat.PS4));
+    function makePlatAv(platKey) {
+      if (platKey === 'PS5') {
+        var a5 = el('div', 'avatar sq');
+        var i5 = el('img', 'plat-av-img');
+        i5.src = '/resources/ps5_logo.png';
+        i5.alt = 'PS5';
+        a5.appendChild(i5);
+        return a5;
+      }
+      if (platKey === 'PS4') {
+        var a4 = el('div', 'avatar sq amber');
+        var i4 = el('img', 'plat-av-img');
+        i4.src = '/resources/ps4_logo.webp';
+        i4.alt = 'PS4';
+        a4.appendChild(i4);
+        return a4;
+      }
+      return el('div', 'avatar sq hb', 'HB');
+    }
+    pPlat.appendChild(makeItem([makePlatAv('PS5')], 'PS5 games',
+      plat.PS5 ? fmtLong(plat.PS5) : 'none',
+      el('span', count.PS5 ? 'gstamp' : 'gstamp zero', plural(count.PS5, 'game', 'games') + ' installed'),
+      function () { openPlatformDistributionModal('PS5'); },
+      !plat.PS5));
+    pPlat.appendChild(makeItem([makePlatAv('PS4')], 'PS4 games',
+      plat.PS4 ? fmtLong(plat.PS4) : 'none',
+      el('span', count.PS4 ? 'gstamp amber' : 'gstamp zero', plural(count.PS4, 'game', 'games') + ' installed'),
+      function () { openPlatformDistributionModal('PS4'); },
+      !plat.PS4));
+    if (count.HOMEBREW > 0) {
+      pPlat.appendChild(makeItem([el('div', 'avatar sq hb', 'HB')], 'Homebrew apps',
+        plat.HOMEBREW ? fmtLong(plat.HOMEBREW) : 'none',
+        el('span', count.HOMEBREW ? 'gstamp hb' : 'gstamp zero', plural(count.HOMEBREW, 'app', 'apps') + ' installed'),
+        function () { openPlatformDistributionModal('HOMEBREW'); },
+        !plat.HOMEBREW));
+    }
+    renderSideAccess();
 
+    var uIdx = activeHltbUserIdx();
+    var pProg = $('pDashProgress');
+    clear(pProg);
+
+    var userPillsBox = $('dashProgUserPills');
+    if (userPillsBox) {
+      clear(userPillsBox);
+      if (state.users.length > 1) {
+        for (k = 0; k < state.users.length; k++) {
+          (function (idx) {
+            var u = state.users[idx];
+            var isCur = (idx === uIdx);
+            var btn = el('button', 'dash-user-pill' + (isCur ? ' on' : ''), userLabel(idx));
+            btn.type = 'button';
+            if (isCur) {
+              btn.style.background = CHART_COLORS[idx % CHART_COLORS.length];
+              btn.style.borderColor = CHART_COLORS[idx % CHART_COLORS.length];
+              btn.style.color = '#ffffff';
+            }
+            btn.onclick = function () {
+              state.hltb.ps5User = u;
+              var sel = $('hltbUserSel');
+              if (sel) { sel.value = u; }
+              renderDashboard();
+              renderHltbTab();
+            };
+            userPillsBox.appendChild(btn);
+          })(k);
+        }
+      }
+    }
+
+    var progGames = games.filter(function (g) {
+      return !isHomebrew(g) && gameHltbTimes(g) !== null;
+    });
+    progGames.sort(function (a, b) {
+      var sa = (a.userSec && a.userSec[uIdx] !== undefined) ? a.userSec[uIdx] : 0;
+      var sb = (b.userSec && b.userSec[uIdx] !== undefined) ? b.userSec[uIdx] : 0;
+      if (sb !== sa) { return sb - sa; }
+      if (b.sec !== a.sec) { return b.sec - a.sec; }
+      if (a.lastTs !== b.lastTs) { return a.lastTs < b.lastTs ? 1 : -1; }
+      return a.name.localeCompare(b.name);
+    });
+    if (!progGames.length) {
+      pProg.appendChild(el('div', 'none', 'No game progress yet. Click "Auto-Match All Games" in HLTB tab or auto-match in game details.'));
+    } else {
+      var limit = 3;
+      for (i = 0; i < Math.min(progGames.length, limit); i++) {
+        pProg.appendChild(makeDashProgressItem(progGames[i], false));
+      }
+      if (progGames.length > limit) {
+        var moreBtn = el('button', 'refresh', 'View All (' + progGames.length + ' games) \u2192');
+        moreBtn.type = 'button';
+        moreBtn.style.display = 'block';
+        moreBtn.style.width = '100%';
+        moreBtn.style.marginTop = '.45rem';
+        moreBtn.style.fontSize = '.84rem';
+        moreBtn.style.padding = '.52rem .8rem';
+        moreBtn.onclick = function () { openProgressModal(progGames); };
+        pProg.appendChild(moreBtn);
+      }
+    }
+
+    renderHltbTab();
+  }
+
+  /* ---------- HLTB Tab rendering & Native PS5 Sync ---------- */
+  function toggleGameSelection(game, selected, customHltbId, listType) {
+    if (isHomebrew(game)) {
+      toast('Homebrew applications cannot be synced to HowLongToBeat.');
+      return;
+    }
+    var uId = activeHltbUserId();
+    if (!uId) { toast('No PS5 user profile found'); return; }
+    var url = '/api/hltb/select?user=' + encodeURIComponent(uId) +
+              '&id=' + encodeURIComponent(game.id) +
+              '&selected=' + (selected ? '1' : '0');
+    if (game.name) {
+      url += '&title=' + encodeURIComponent(game.name);
+    }
+    if (customHltbId !== undefined && customHltbId !== null) {
+      url += '&hltb_id=' + encodeURIComponent(customHltbId);
+    }
+    if (listType) {
+      url += '&list=' + encodeURIComponent(listType);
+    }
+    fetch(url, { method: 'POST', headers: csrfHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { throw new Error(d.error); }
+        return fetch('/api/hltb', { cache: 'no-store' }).then(function (r) { return r.json(); });
+      })
+      .then(function (h) {
+        prepareHltb(h);
+        renderDashboard();
+        renderGrid();
+        try {
+          var qp = new URLSearchParams(location.search);
+          var qg = qp.get('game');
+          if (qg && state.games) {
+            for (var gi = 0; gi < state.games.length; gi++) {
+              if (state.games[gi].id === qg) { showDetail(state.games[gi]); break; }
+            }
+          }
+        } catch (e) {}
+        if (openGame && openGame.id === game.id) { showDetail(openGame, lastFocus); }
+        var listSuffix = listType ? (' (' + listType.toUpperCase() + ')') : '';
+        toast(selected ? ('Updated HLTB sync for "' + game.name + '"' + listSuffix) : ('Removed "' + game.name + '" from HLTB sync'));
+      })
+      .catch(function (e) {
+        toast((e && e.message) ? e.message : 'Failed to update game selection');
+      });
+  }
+
+  function renderHltbTab() {
+    var sel = $('hltbUserSel');
+    clear(sel);
+    var uIdx = activeHltbUserIdx();
+    for (var k = 0; k < state.users.length; k++) {
+      var opt = el('option', '', userLabel(k) + ' (' + state.users[k] + ')');
+      opt.value = state.users[k];
+      if (k === uIdx) { opt.selected = true; }
+      sel.appendChild(opt);
+    }
+    var acct = activeHltbAccount();
+    var autoBtn = $('hltbAutoBtn');
+    autoBtn.textContent = 'PS5 Auto-Sync: ' + (acct.autoSync ? 'ON' : 'OFF');
+    autoBtn.className = acct.autoSync ? 'chip on' : 'chip';
+
+    var syncNowBtn = $('hltbSyncNow');
+    var syncAllBtn = $('hltbSyncAll');
+    if (acct.loggedIn) {
+      syncNowBtn.disabled = false;
+      syncNowBtn.title = 'Sync selected games to HLTB for ' + userLabel(uIdx);
+      syncAllBtn.disabled = false;
+      syncAllBtn.title = 'Force re-sync all selected games for ' + userLabel(uIdx);
+    } else {
+      syncNowBtn.disabled = true;
+      syncNowBtn.title = 'Sign in to HowLongToBeat first for ' + userLabel(uIdx);
+      syncAllBtn.disabled = true;
+      syncAllBtn.title = 'Sign in to HowLongToBeat first for ' + userLabel(uIdx);
+    }
+
+    if (acct.loggedIn) {
+      $('hltbAcctStatus').textContent = 'Profile ' + userLabel(uIdx) + ' logged in as ' +
+        (acct.hltbUsername || ('User #' + acct.hltbUserId)) +
+        ' — PS5 auto-syncs your selected games on startup.';
+      $('hltbLoggedOutBox').style.display = 'none';
+      $('hltbLoggedInBox').style.display = 'block';
+    } else {
+      $('hltbAcctStatus').textContent = 'Profile ' + userLabel(uIdx) + ' is not logged in to HLTB — sign in below or scan Phone QR.';
+      $('hltbLoggedOutBox').style.display = 'block';
+      $('hltbLoggedInBox').style.display = 'none';
+      if ($('vHltb').style.display !== 'none') { ensureHltbCaptcha(); }
+    }
+
+    var selCount = 0, pend = 0, synced = 0;
+    var pHltb = $('pHltb');
+    clear(pHltb);
+    var list = state.games.slice().sort(byPlayed);
+    for (var i = 0; i < list.length; i++) {
+      var g = list[i];
+      if (isHomebrew(g)) { continue; } /* Exclude homebrew apps from HLTB sync list */
+      var st = gameSyncStatus(g);
+      if (st.selected) { selCount++; }
+      if (st.state === 'pending') { pend++; }
+      if (st.state === 'synced') { synced++; }
+
+      (function (game, status) {
+        var row = el('div', 'item');
+        row.onclick = function () { showDetail(game, this); };
+
+        var selBtn = el('button', status.selected ? 'hltb-selbtn on' : 'hltb-selbtn',
+                        status.selected ? '\u2713 Selected' : '+ Select');
+        selBtn.type = 'button';
+        selBtn.style.marginRight = '.55rem';
+        selBtn.onclick = function (e) {
+          e.stopPropagation();
+          toggleGameSelection(game, !status.selected, null);
+        };
+        row.appendChild(selBtn);
+
+        row.appendChild(makeArt(game, 'thumb'));
+        var mid = el('div', 'imid');
+        mid.appendChild(el('div', 'iname', game.name));
+        var stamps = el('div', 'mstamps');
+        stamps.appendChild(idChip(game.id, 'idchip'));
+        if (status.entry && status.entry.hltbId > 0) {
+          stamps.appendChild(el('span', 'gstamp green', 'HLTB #' + status.entry.hltbId +
+            (status.entry.hltbTitle ? ' (' + status.entry.hltbTitle + ')' : '')));
+        } else if (status.selected) {
+          stamps.appendChild(el('span', 'gstamp amber', 'Auto-match on sync'));
+        }
+        if (status.entry && status.entry.compMain > 0) {
+          stamps.appendChild(el('span', 'gstamp', 'Main: ' + fmtHours(status.entry.compMain) + 'h'));
+        }
+
+        /* Inline status buttons: Playing | Backlog | Completed */
+        var listGroup = el('div', 'hltb-list-group');
+        listGroup.style.margin = '.25rem 0 0';
+        var listKeys = ['playing', 'backlog', 'completed'];
+        var listNames = { playing: 'Playing', backlog: 'Backlog', completed: 'Completed' };
+        for (var lk = 0; lk < listKeys.length; lk++) {
+          (function (lKey) {
+            var isCur = (status.selected && (status.listType || 'playing') === lKey);
+            var pill = el('button', 'hltb-pill ' + lKey + (isCur ? ' on' : ''), listNames[lKey]);
+            pill.type = 'button';
+            pill.onclick = function (e) {
+              e.stopPropagation();
+              toggleGameSelection(game, true, null, lKey);
+            };
+            listGroup.appendChild(pill);
+          })(listKeys[lk]);
+        }
+        stamps.appendChild(listGroup);
+
+        mid.appendChild(stamps);
+        row.appendChild(mid);
+
+        var right = el('div', 'iright');
+        var label = '';
+        var cls = 'ival';
+        if (!status.selected) {
+          label = status.sec > 0 ? fmtLong(status.sec) : 'Not played';
+          cls = 'ival dim';
+        } else if (status.state === 'synced') {
+          label = status.sec > 0 ? ('Synced: ' + fmtLong(status.sec)) : ('Synced (' + (status.listType || 'playing') + ')');
+          cls = 'ival';
+        } else if (status.state === 'pending') {
+          var diff = (status.syncedSec >= 0) ? (status.sec - status.syncedSec) : status.sec;
+          if (status.syncedSec > 0 && diff > 0) {
+            label = '+' + fmtLong(diff) + ' unsynced';
+          } else if (status.sec > 0) {
+            label = 'Pending: ' + fmtLong(status.sec);
+          } else {
+            label = 'Pending (' + (status.listType || 'playing') + ')';
+          }
+          cls = 'ival warn';
+        } else {
+          label = status.sec > 0 ? fmtLong(status.sec) : 'Not played';
+          cls = 'ival dim';
+        }
+        right.appendChild(el('div', cls, label));
+        if (status.entry && status.entry.updatedAt) {
+          right.appendChild(el('div', 'ilast', 'Synced ' + fmtDate(status.entry.updatedAt, true)));
+        }
+        row.appendChild(right);
+        pHltb.appendChild(row);
+      })(g, st);
+    }
+    if (!pHltb.firstChild) {
+      pHltb.appendChild(el('div', 'none', 'No installed games found.'));
+    }
+
+    $('hSelected').textContent = selCount;
+    $('hPend').textContent = pend;
+    $('hSynced').textContent = synced;
+    $('hLast').textContent = (acct.lastSync || state.hltb.lastSync) ? fmtDate(acct.lastSync || state.hltb.lastSync, true) : 'Never';
+    var badge = $('hltbTabBadge');
+    if (pend > 0) {
+      badge.textContent = pend;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function startHltbSync(forceAll) {
+    var acct = activeHltbAccount();
+    if (!acct.loggedIn && !state.hltb.loggedIn) {
+      toast('Please sign in to your HLTB account first.');
+      return;
+    }
+    var btn = forceAll ? $('hltbSyncAll') : $('hltbSyncNow');
+    btn.disabled = true;
+    toast('Syncing selected games to HLTB from PS5...');
+    fetch('/api/hltb/sync' + (forceAll ? '?force=1' : ''), {
+      method: 'POST',
+      headers: csrfHeaders()
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        btn.disabled = false;
+        if (d.error) { throw new Error(d.error); }
+        if ((d.synced || 0) === 0) {
+          toast('All selected games are already up to date on HLTB! Click "Force Sync Selected" to re-push.');
+        } else {
+          toast('Synced ' + d.synced + ' selected game(s) to HLTB!');
+        }
+        load();
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        toast((e && e.message) ? e.message : 'HLTB sync failed');
+      });
   }
 
   /* ---------- user share chart ---------- */
-  var CHART_COLORS = ['#60a5fa', '#a78bfa', '#f59e0b', '#34d399', '#f472b6', '#22d3ee', '#f87171', '#a3e635'];
   function svgEl(tag, attrs) {
     var n = document.createElementNS('http://www.w3.org/2000/svg', tag), a;
     for (a in attrs) { n.setAttribute(a, attrs[a]); }
@@ -821,14 +2327,27 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     card.setAttribute('role', 'button');
 
     var art = makeArt(game, 'art');
-    var badge = el('span', game.platform === 'PS4' ? 'badge ps4' : 'badge', game.platform);
+    var badge = el('span', game.platform === 'PS4' ? 'badge ps4' : (game.platform === 'HOMEBREW' ? 'badge hb' : 'badge'), game.platform);
     art.appendChild(badge);
     art.appendChild(idChip(game.id, 'idchip over'));
+    var st = gameSyncStatus(game);
+    if (st.selected) {
+      if (st.state === 'synced') {
+        art.appendChild(el('span', 'hbadge', 'HLTB \u2713'));
+      } else {
+        art.appendChild(el('span', 'hbadge pend', 'HLTB \u21bb'));
+      }
+    }
     card.appendChild(art);
 
     var info = el('div', 'info');
     info.appendChild(el('p', 'name', game.name));
     info.appendChild(el('p', game.sec > 0 ? 'time' : 'time zero', game.sec > 0 ? fmtLong(game.sec) : 'Not played yet'));
+    var times = gameHltbTimes(game);
+    if (times && (times.main > 0 || times.all > 0)) {
+      var cardUSec = (game.userSec && game.userSec[activeHltbUserIdx()]) || 0;
+      info.appendChild(makeProgressBar(cardUSec, times.main || times.all, 'Main', true));
+    }
     card.appendChild(info);
     if (game.lastTs) { info.appendChild(el('p', 'last', 'Last played ' + fmtDate(game.lastTs, false))); }
 
@@ -872,7 +2391,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     while (art.firstChild) { $('mArt').appendChild(art.firstChild); }
     $('mName').textContent = game.name;
     clear($('mId'));
-    $('mId').appendChild(el('span', game.platform === 'PS4' ? 'mstamp ps4' : 'mstamp', game.platform));
+    $('mId').appendChild(el('span', game.platform === 'PS4' ? 'mstamp ps4' : (game.platform === 'HOMEBREW' ? 'mstamp hb' : 'mstamp'), game.platform));
     $('mId').appendChild(idChip(game.id, 'idchip'));
     $('mTotal').textContent = game.sec > 0 ? fmtLong(game.sec) : 'Not played yet';
     $('mTotal').className = game.sec > 0 ? 'mtotal' : 'mtotal zero';
@@ -889,15 +2408,101 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       box.appendChild(row);
       if (ed) { box.appendChild(ed.panel); }
     }
+
+    if (isHomebrew(game)) {
+      $('mHltbBox').style.display = 'none';
+    } else {
+      $('mHltbBox').style.display = 'block';
+      var uEntry = userHltbEntry(game.id);
+      var hEntry = uEntry || sharedHltbEntry(game.id);
+      var isSel = (uEntry && uEntry.selected) ? true : false;
+      var curList = (uEntry && uEntry.listType) ? uEntry.listType : 'playing';
+      var tBtn = $('mHltbToggle');
+      tBtn.className = isSel ? 'hltb-selbtn on' : 'hltb-selbtn';
+      tBtn.textContent = isSel ? '\u2713 Selected for HLTB Sync' : '+ Select for HLTB Sync';
+
+      var listPills = $('mHltbListGroup').getElementsByTagName('button');
+      for (var lpi = 0; lpi < listPills.length; lpi++) {
+        var pList = listPills[lpi].getAttribute('data-list');
+        var isPillOn = isSel && (pList === curList);
+        listPills[lpi].className = 'hltb-pill ' + pList + (isPillOn ? ' on' : '');
+      }
+
+      if (hEntry && hEntry.hltbId > 0) {
+        $('mHltbStatus').textContent = (isSel ? ('Selected (' + curList.toUpperCase() + ') — ') : 'Not selected — ') +
+          'Linked to HLTB #' + hEntry.hltbId + (hEntry.hltbTitle ? ' (' + hEntry.hltbTitle + ')' : '');
+        $('mHltbInput').value = hEntry.hltbId;
+      } else {
+        $('mHltbStatus').textContent = isSel ? ('Selected (' + curList.toUpperCase() + ') — Auto-match by name on sync') : 'Not selected for sync';
+        $('mHltbInput').value = '';
+      }
+
+      var curModalTarget = 'main';
+      var curModalUserIdx = activeHltbUserIdx();
+      function renderDetailHltb() {
+        var bannerBox = $('mHltbBannerBox');
+        var progBox = $('mHltbProgressBox');
+        clear(bannerBox);
+        clear(progBox);
+        var times = gameHltbTimes(game);
+        if (!times) {
+          progBox.appendChild(el('div', 'isub', 'Enter a custom HLTB ID below or sync to fetch expected completion times.'));
+          return;
+        }
+        var targetSec = times[curModalTarget] || times.main || times.plus || times.comp || times.all || 0;
+        var targetLabels = { main: 'Main Story', plus: 'Main + Sides', comp: 'Completionist' };
+        var banner = makeHltbBanner(game, curModalTarget, function (newKey) {
+          curModalTarget = newKey;
+          renderDetailHltb();
+        });
+        if (banner) { bannerBox.appendChild(banner); }
+
+        if (state.users.length > 1) {
+          var userSwitchRow = el('div');
+          userSwitchRow.style.display = 'flex';
+          userSwitchRow.style.alignItems = 'center';
+          userSwitchRow.style.flexWrap = 'wrap';
+          userSwitchRow.style.gap = '.35rem';
+          userSwitchRow.style.margin = '.35rem 0 .25rem';
+          userSwitchRow.style.fontSize = '.76rem';
+          userSwitchRow.style.color = 'var(--muted)';
+          userSwitchRow.style.fontWeight = '700';
+          userSwitchRow.appendChild(document.createTextNode('Progress for:'));
+          for (var ui = 0; ui < state.users.length; ui++) {
+            (function (idx) {
+              var isCur = (idx === curModalUserIdx);
+              var pill = el('button', 'dash-user-pill' + (isCur ? ' on' : ''));
+              pill.type = 'button';
+              var played = (game.userSec && game.userSec[idx]) || 0;
+              pill.textContent = userLabel(idx) + ' (' + (played > 0 ? fmtLong(played) : '0h') + ')';
+              if (isCur) {
+                pill.style.background = CHART_COLORS[idx % CHART_COLORS.length];
+                pill.style.borderColor = CHART_COLORS[idx % CHART_COLORS.length];
+                pill.style.color = '#ffffff';
+              }
+              pill.onclick = function () {
+                curModalUserIdx = idx;
+                renderDetailHltb();
+              };
+              userSwitchRow.appendChild(pill);
+            })(ui);
+          }
+          progBox.appendChild(userSwitchRow);
+        }
+
+        var uSec = (game.userSec && game.userSec[curModalUserIdx] !== undefined) ? game.userSec[curModalUserIdx] : 0;
+        var uName = userLabel(curModalUserIdx);
+        var label = (targetLabels[curModalTarget] || 'Main Story') + (state.users.length > 1 ? (' (' + uName + ')') : '');
+        progBox.appendChild(makeProgressBar(uSec, targetSec, label, false));
+      }
+      renderDetailHltb();
+    }
+
     closeOpenEditor = null;
     $('overlay').style.display = 'flex';
     $('mClose').focus();
   }
 
-  /* Press once = one step. Hold (mouse or touch) = repeats, getting faster.
-     A click with detail 0 comes from the keyboard / controller and is one step
-     (holding the key repeats it by itself); mouse and touch are handled by
-     the press events below, so their click is ignored to avoid double steps. */
   function holdRepeat(btn, step) {
     var timer = null;
     var ticks = 0;
@@ -921,7 +2526,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       if (e.button === 0) { start(); }
     };
     btn.ontouchstart = function (e) {
-      e.preventDefault();   /* no emulated mouse / click after a touch */
+      e.preventDefault();
       start();
     };
     btn.onmouseup = stop;
@@ -937,16 +2542,12 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 
   function plural2(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
 
-  /* "15 hours 27 minutes" */
   function fmtWords(totalMin) {
     var h = Math.floor(totalMin / 60);
     var m = totalMin % 60;
     return plural2(h, 'hour', 'hours') + ', ' + plural2(m, 'minute', 'minutes');
   }
 
-  /* Edit panel for one user's play time: big - / + buttons (controller and
-     touch friendly) for hours and minutes. Minutes roll over into hours.
-     Returns { btn, panel }: btn sits on the user's row, panel opens below it. */
   var closeOpenEditor = null;
   function makeEditor(game, k) {
     var start = Math.round(game.userSec[k] / 60);
@@ -1052,6 +2653,15 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         prepare({ unitSeconds: state.unit, users: state.users, names: state.names, games: state.games });
         renderDashboard();
         renderGrid();
+        try {
+          var qp = new URLSearchParams(location.search);
+          var qg = qp.get('game');
+          if (qg && state.games) {
+            for (var gi = 0; gi < state.games.length; gi++) {
+              if (state.games[gi].id === qg) { showDetail(state.games[gi]); break; }
+            }
+          }
+        } catch (e) {}
         showDetail(game, lastFocus);
         toast('Play time saved');
       })
@@ -1067,17 +2677,241 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
   }
 
+  /* ---------- Visible Sidebar QR Code & Modal ---------- */
+  function renderSideAccess() {
+    var addrEl = $('sideAddr');
+    var qrBox = $('sideQrBox');
+    if (!addrEl || !qrBox) { return; }
+    var hostPort = serverUrl ? serverUrl.replace(/^https?:\/\//, '') : (location.host || '');
+    addrEl.textContent = hostPort;
+    clear(qrBox);
+    if (serverUrl) {
+      try {
+        qrBox.appendChild(makeQrSvg(serverUrl));
+      } catch (err) {}
+    }
+  }
+
+  function openQrModal() {
+    var box = $('qrBox');
+    clear(box);
+    box.appendChild(makeQrSvg(serverUrl));
+    $('qrUrlText').textContent = serverUrl;
+    $('qrOverlay').style.display = 'flex';
+    $('qrClose').focus();
+  }
+  function closeQrModal() {
+    $('qrOverlay').style.display = 'none';
+  }
+  if ($('qrBtn')) { $('qrBtn').onclick = openQrModal; }
+  if ($('sideAccess')) { $('sideAccess').onclick = openQrModal; }
+  $('qrClose').onclick = closeQrModal;
+  $('qrOverlay').onclick = function (e) { if (e.target === this) { closeQrModal(); } };
+
+  /* ---------- HLTB UI Event Listeners ---------- */
+  function saveHltbConfig() {
+    var uId = $('hltbUserSel').value || activeHltbUserId();
+    state.hltb.ps5User = uId;
+    var acct = activeHltbAccount();
+    fetch('/api/hltb/config?user=' + encodeURIComponent(uId) +
+          '&auto=' + (acct.autoSync ? '1' : '0'),
+          { method: 'POST', headers: csrfHeaders() })
+      .then(function () {
+        return fetch('/api/hltb', { cache: 'no-store' }).then(function (r) { return r.json(); });
+      })
+      .then(function (h) {
+        prepareHltb(h);
+        renderHltbTab();
+        renderDashboard();
+        renderGrid();
+        try {
+          var qp = new URLSearchParams(location.search);
+          var qg = qp.get('game');
+          if (qg && state.games) {
+            for (var gi = 0; gi < state.games.length; gi++) {
+              if (state.games[gi].id === qg) { showDetail(state.games[gi]); break; }
+            }
+          }
+        } catch (e) {}
+      })
+      .catch(function () {});
+  }
+  $('hltbUserSel').onchange = saveHltbConfig;
+  $('hltbAutoBtn').onclick = function () {
+    var acct = activeHltbAccount();
+    acct.autoSync = acct.autoSync ? 0 : 1;
+    state.hltb.autoSync = acct.autoSync;
+    saveHltbConfig();
+    toast('PS5 HLTB Auto-Sync ' + (acct.autoSync ? 'enabled' : 'disabled'));
+  };
+  $('hltbSyncNow').onclick = function () { startHltbSync(false); };
+  $('hltbSyncAll').onclick = function () { startHltbSync(true); };
+  $('hltbMatchAll').onclick = function () {
+    var btn = this;
+    btn.disabled = true;
+    toast('Auto-matching all library games with HowLongToBeat...');
+    fetch('/api/hltb/match-all', {
+      method: 'POST',
+      headers: csrfHeaders()
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        btn.disabled = false;
+        if (d.error) { throw new Error(d.error); }
+        toast('Library auto-match complete!');
+        load();
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        toast((e && e.message) ? e.message : 'Auto-match failed');
+      });
+  };
+
+  $('hltbCookieToggle').onclick = function () {
+    var cb = $('hltbCookieBox');
+    cb.style.display = cb.style.display === 'none' ? 'block' : 'none';
+  };
+
+  function submitHltbLogin(params, btn) {
+    btn.disabled = true;
+    fetch('/api/hltb/login', {
+      method: 'POST',
+      headers: csrfHeaders(),
+      body: params
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        btn.disabled = false;
+        if (d.error) { throw new Error(d.error); }
+        $('hltbPassInp').value = '';
+        $('hltbCookieInp').value = '';
+        toast('Logged in! Session saved for ' + userLabel(activeHltbUserIdx()) + ' on PS5.');
+        return fetch('/api/hltb', { cache: 'no-store' }).then(function (r) { return r.json(); });
+      })
+      .then(function (h) {
+        prepareHltb(h);
+        renderHltbTab();
+        renderDashboard();
+        renderGrid();
+        try {
+          var qp = new URLSearchParams(location.search);
+          var qg = qp.get('game');
+          if (qg && state.games) {
+            for (var gi = 0; gi < state.games.length; gi++) {
+              if (state.games[gi].id === qg) { showDetail(state.games[gi]); break; }
+            }
+          }
+        } catch (e) {}
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        if (window.hcaptcha && hcaptchaWidgetId !== null) {
+          try { window.hcaptcha.reset(hcaptchaWidgetId); } catch (err) {}
+        }
+        toast((e && e.message) ? e.message : 'HLTB login failed');
+      });
+  }
+
+  $('hltbLoginBtn').onclick = function () {
+    var u = $('hltbUserInp').value.trim();
+    var p = $('hltbPassInp').value;
+    if (!u || !p) { toast('Enter your HLTB username and password'); return; }
+    var tok = '';
+    if (window.hcaptcha && hcaptchaWidgetId !== null) {
+      try { tok = window.hcaptcha.getResponse(hcaptchaWidgetId) || ''; } catch (e) {}
+    }
+    var body = 'user=' + encodeURIComponent(activeHltbUserId()) +
+               '&username=' + encodeURIComponent(u) +
+               '&password=' + encodeURIComponent(p) +
+               '&token=' + encodeURIComponent(tok) +
+               '&ua=' + encodeURIComponent(navigator.userAgent || '');
+    submitHltbLogin(body, $('hltbLoginBtn'));
+  };
+
+  $('hltbCookieBtn').onclick = function () {
+    var ck = $('hltbCookieInp').value.trim();
+    if (!ck) { toast('Paste your HLTB Cookie header value first'); return; }
+    var body = 'user=' + encodeURIComponent(activeHltbUserId()) +
+               '&cookie=' + encodeURIComponent(ck) +
+               '&ua=' + encodeURIComponent(navigator.userAgent || '');
+    submitHltbLogin(body, $('hltbCookieBtn'));
+  };
+
+  $('hltbLogoutBtn').onclick = function () {
+    var uId = activeHltbUserId();
+    fetch('/api/hltb/logout?user=' + encodeURIComponent(uId), { method: 'POST', headers: csrfHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.error) { throw new Error(d.error); }
+        toast('Logged out of HLTB for ' + userLabel(activeHltbUserIdx()) + '.');
+        return fetch('/api/hltb', { cache: 'no-store' }).then(function (r) { return r.json(); });
+      })
+      .then(function (h) {
+        prepareHltb(h);
+        renderHltbTab();
+        renderDashboard();
+      })
+      .catch(function (e) {
+        toast((e && e.message) ? e.message : 'Logout failed');
+      });
+  };
+
+  $('mHltbToggle').onclick = function () {
+    if (!openGame) { return; }
+    var uEntry = userHltbEntry(openGame.id);
+    var isSel = (uEntry && uEntry.selected) ? true : false;
+    toggleGameSelection(openGame, !isSel, null);
+  };
+  $('mHltbSave').onclick = function () {
+    if (!openGame) { return; }
+    var v = parseInt($('mHltbInput').value, 10);
+    if (!v || v <= 0) { toast('Enter a valid positive HLTB Game ID'); return; }
+    var uEntry = userHltbEntry(openGame.id);
+    var isSel = (uEntry && uEntry.selected) ? true : false;
+    toast('Fetching HowLongToBeat times for #' + v + '...');
+    toggleGameSelection(openGame, isSel, v);
+  };
+  $('mHltbAuto').onclick = function () {
+    if (!openGame) { return; }
+    var uEntry = userHltbEntry(openGame.id);
+    var isSel = (uEntry && uEntry.selected) ? true : false;
+    toast('Auto-matching "' + openGame.name + '" on HowLongToBeat...');
+    toggleGameSelection(openGame, isSel, 0);
+  };
+  var mListBtns = $('mHltbListGroup').getElementsByTagName('button');
+  for (var mbi = 0; mbi < mListBtns.length; mbi++) {
+    mListBtns[mbi].onclick = function () {
+      if (!openGame) { return; }
+      var lKey = this.getAttribute('data-list');
+      toggleGameSelection(openGame, true, null, lKey);
+    };
+  }
+
   /* ---------- loading ---------- */
   function load() {
     meta.textContent = 'Loading...';
     showSkeleton();
-    fetch('/api/games', { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
+    Promise.all([
+      fetch('/api/games', { cache: 'no-store' }).then(function (r) { return r.json(); }),
+      fetch('/api/hltb', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return {}; })
+    ])
+      .then(function (res) {
+        var d = res[0];
+        var h = res[1] || {};
         if (d.error) { throw new Error(d.error); }
         prepare(d);
+        prepareHltb(h);
         renderDashboard();
         renderGrid();
+        try {
+          var qp = new URLSearchParams(location.search);
+          var qg = qp.get('game');
+          if (qg && state.games) {
+            for (var gi = 0; gi < state.games.length; gi++) {
+              if (state.games[gi].id === qg) { showDetail(state.games[gi]); break; }
+            }
+          }
+        } catch (e) {}
       })
       .catch(function (e) {
         meta.textContent = 'Could not load games';
@@ -1096,9 +2930,10 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     var c = $('credit');
     var b = document.createElement('b');
     var a = document.createElement('a');
+    var repoUrl = repo || 'https://github.com/natkokrasevac/PS5-HLTB';
     b.textContent = author;
-    a.textContent = repo;
-    a.href = repo;
+    a.textContent = repoUrl;
+    a.href = repoUrl;
     a.target = '_blank';
     a.rel = 'noopener';
     c.textContent = 'Developed by ';
@@ -1116,27 +2951,78 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         $('tagline').textContent = d.tagline;
         setCredit(d.author, d.repo);
         csrfName = d.csrf;
-        $('fw').textContent = 'PS5 Firmware ' + d.firmware;
-        if (d.version) { $('ver').textContent = /^[0-9]/.test(d.version) ? 'v' + d.version : d.version; }
-        $('addr').textContent = d.ip + ':' + d.port;
+        if ($('fw')) { $('fw').textContent = 'PS5 Firmware ' + d.firmware; }
+        if (d.version && $('ver')) { $('ver').textContent = /^[0-9]/.test(d.version) ? 'v' + d.version : d.version; }
+        var hostPort = d.ip + ':' + d.port;
+        if ($('addr')) { $('addr').textContent = hostPort; }
+        if ($('sideAddr')) { $('sideAddr').textContent = hostPort; }
+        serverUrl = 'http://' + hostPort;
+        renderSideAccess();
+        load();
       })
-      .catch(function () { $('addr').textContent = location.host; });
+      .catch(function () {
+        if ($('addr')) { $('addr').textContent = location.host; }
+        if ($('sideAddr')) { $('sideAddr').textContent = location.host; }
+        serverUrl = location.origin;
+        setCredit('Mahdi Hosseini', 'https://github.com/natkokrasevac/PS5-HLTB');
+        renderSideAccess();
+        load();
+      });
   }
 
-  var chips = document.querySelectorAll('.chip[data-p]');
-  var ci;
-  for (ci = 0; ci < chips.length; ci++) {
-    chips[ci].onclick = function () {
-      var all = document.querySelectorAll('.chip[data-p]');
-      for (var k = 0; k < all.length; k++) { all[k].className = 'chip'; }
-      this.className = 'chip on';
-      state.platform = this.getAttribute('data-p');
+  function isAllPlatformsSelected() {
+    for (var i = 0; i < ALL_PLATFORMS.length; i++) {
+      if (!state.platforms[ALL_PLATFORMS[i]]) { return false; }
+    }
+    return true;
+  }
+
+  function applyPlatformChips() {
+    var pChips = document.querySelectorAll('.chip[data-p]');
+    var allOn = isAllPlatformsSelected();
+    for (var i = 0; i < pChips.length; i++) {
+      var p = pChips[i].getAttribute('data-p');
+      if (p === 'ALL') {
+        pChips[i].className = allOn ? 'chip on' : 'chip';
+      } else {
+        pChips[i].className = state.platforms[p] ? 'chip on' : 'chip';
+      }
+    }
+  }
+
+  function savePlatforms() {
+    var sel = [];
+    ALL_PLATFORMS.forEach(function (p) { if (state.platforms[p]) { sel.push(p); } });
+    try { localStorage.setItem('pt-platforms', sel.join(',')); } catch (e) {}
+  }
+
+  applyPlatformChips();
+
+  var pChips = document.querySelectorAll('.chip[data-p]');
+  for (var ci = 0; ci < pChips.length; ci++) {
+    pChips[ci].onclick = function () {
+      var p = this.getAttribute('data-p');
+      if (p === 'ALL') {
+        ALL_PLATFORMS.forEach(function (k) { state.platforms[k] = true; });
+      } else {
+        state.platforms[p] = !state.platforms[p];
+        var any = false;
+        ALL_PLATFORMS.forEach(function (k) { if (state.platforms[k]) { any = true; } });
+        if (!any) {
+          ALL_PLATFORMS.forEach(function (k) { state.platforms[k] = true; });
+        }
+      }
+      savePlatforms();
+      applyPlatformChips();
       renderGrid();
     };
   }
+
+  $('sort').textContent = 'SORT: ' + SORT_LABELS[state.sort];
   $('sort').onclick = function () {
     state.sort = SORTS[(SORTS.indexOf(state.sort) + 1) % SORTS.length];
     this.textContent = 'SORT: ' + SORT_LABELS[state.sort];
+    try { localStorage.setItem('pt-sort', state.sort); } catch (e) {}
     renderGrid();
   };
   function applyView() { $('view').textContent = 'VIEW: ' + (state.view === 'list' ? 'LIST' : 'CARDS'); }
@@ -1175,17 +3061,23 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   $('reload').onclick = load;
   $('mClose').onclick = closeDetail;
   $('overlay').onclick = function (e) { if (e.target === this) { closeDetail(); } };
+  $('pProgModalClose').onclick = closeProgressModal;
+  $('pProgModalCloseTop').onclick = closeProgressModal;
+  $('progressOverlay').onclick = function (e) { if (e.target === this) { closeProgressModal(); } };
+  $('distModalClose').onclick = closeDistModal;
+  $('distModalCloseTop').onclick = closeDistModal;
+  $('distOverlay').onclick = function (e) { if (e.target === this) { closeDistModal(); } };
   document.onkeydown = function (e) {
     if (e.key === 'Escape' || e.keyCode === 27) {
-      if (openGame) { closeDetail(); }
+      if ($('distOverlay') && $('distOverlay').style.display !== 'none') { closeDistModal(); }
+      else if ($('progressOverlay') && $('progressOverlay').style.display !== 'none') { closeProgressModal(); }
+      else if ($('qrOverlay').style.display !== 'none') { closeQrModal(); }
+      else if (openGame) { closeDetail(); }
     }
   };
 
   loadInfo();
-  load();
 })();
 </script>
 </body>
 </html>
-
-
