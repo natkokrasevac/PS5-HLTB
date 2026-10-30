@@ -104,3 +104,4 @@ The compiled output is `PS5-HLTB-v1.0.0.elf` (and `PS5-HLTB.elf`).
 
 - Forked from [ghost1372/PlayTime](https://github.com/ghost1372/PlayTime) by [Mahdi Hosseini](https://github.com/ghost1372).
 - HowLongToBeat community data powered by [HowLongToBeat.com](https://howlongtobeat.com).
+- **Development Note:** This fork was largely developed with AI assistance for C architecture, reverse-engineering HLTB requests, and modern web UI implementation, verified and tested on real PS5 hardware.
