@@ -164,9 +164,9 @@ int server_start(int port) {
     return fd;
 }
 
-/* Case-insensitive search for "<PLAYTIME_CSRF_HEADER>: 1" among the header lines. */
+/* Case-insensitive search for "<PS5_HLTB_CSRF_HEADER>: 1" among the header lines. */
 static int has_custom_header(const char *headers) {
-    static const char NAME[] = PLAYTIME_CSRF_HEADER;
+    static const char NAME[] = PS5_HLTB_CSRF_HEADER;
     const size_t name_len = sizeof NAME - 1;
     const char *p = headers;
 

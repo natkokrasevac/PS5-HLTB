@@ -2928,17 +2928,21 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 
   function setCredit(author, repo) {
     var c = $('credit');
-    var b = document.createElement('b');
-    var a = document.createElement('a');
     var repoUrl = repo || 'https://github.com/natkokrasevac/PS5-HLTB';
-    b.textContent = author;
+    c.textContent = 'Developed by ';
+    var bOrig = document.createElement('b');
+    bOrig.textContent = 'Mahdi Hosseini';
+    c.appendChild(bOrig);
+    c.appendChild(document.createTextNode(' · Forked & extended by '));
+    var bFork = document.createElement('b');
+    bFork.textContent = 'Natko';
+    c.appendChild(bFork);
+    c.appendChild(document.createTextNode(' - '));
+    var a = document.createElement('a');
     a.textContent = repoUrl;
     a.href = repoUrl;
     a.target = '_blank';
     a.rel = 'noopener';
-    c.textContent = 'Developed by ';
-    c.appendChild(b);
-    c.appendChild(document.createTextNode(' - '));
     c.appendChild(a);
   }
 

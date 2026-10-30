@@ -26,9 +26,9 @@ void games_set_excluded(const char *const *titles, size_t count) {
 typedef struct {
     char id[16];
     char name[256];
-    int64_t played[PLAYTIME_MAX_USERS];
-    char last[PLAYTIME_MAX_USERS][32];
-    char has[PLAYTIME_MAX_USERS];
+    int64_t played[PS5_HLTB_MAX_USERS];
+    char last[PS5_HLTB_MAX_USERS][32];
+    char has[PS5_HLTB_MAX_USERS];
 } game_t;
 
 static games_user_name_fn user_name_resolver = NULL;
@@ -340,7 +340,7 @@ static int load_user_tables(sqlite3 *db, char tables[][64], size_t *count,
         set_error(error_message, error_message_size, "Find user tables failed", db);
         return -1;
     }
-    while((rc = sqlite3_step(statement)) == SQLITE_ROW && *count < PLAYTIME_MAX_USERS) {
+    while((rc = sqlite3_step(statement)) == SQLITE_ROW && *count < PS5_HLTB_MAX_USERS) {
         const unsigned char *name = sqlite3_column_text(statement, 0);
 
         if(name && strlen((const char *)name) < 64) {
@@ -416,7 +416,7 @@ static int append_json(buffer_t *out, const game_t *games, size_t count,
     size_t u;
 
     snprintf(number, sizeof number, "{\"unitSeconds\":%d,\"users\":[",
-             PLAYTIME_UNIT_SECONDS);
+             PS5_HLTB_UNIT_SECONDS);
     if(buffer_append_str(out, number) != 0) {
         return -1;
     }
@@ -501,7 +501,7 @@ static int append_json(buffer_t *out, const game_t *games, size_t count,
 
 char *games_list_json(const char *database_path, size_t *length,
                       char *error_message, size_t error_message_size) {
-    char tables[PLAYTIME_MAX_USERS][64];
+    char tables[PS5_HLTB_MAX_USERS][64];
     size_t user_count = 0;
     sqlite3 *db = NULL;
     game_t *games = NULL;
@@ -650,7 +650,7 @@ int games_set_playtime(const char *database_path, const char *title_id,
         snprintf(error_message, error_message_size, "Invalid user.");
         return -1;
     }
-    if(value < 0 || value > PLAYTIME_MAX_VALUE) {
+    if(value < 0 || value > PS5_HLTB_MAX_VALUE) {
         snprintf(error_message, error_message_size, "Play time out of range.");
         return -1;
     }

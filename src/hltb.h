@@ -1,5 +1,5 @@
-#ifndef PLAYTIME_HLTB_H
-#define PLAYTIME_HLTB_H
+#ifndef PS5_HLTB_HLTB_H
+#define PS5_HLTB_HLTB_H
 
 #include <stddef.h>
 

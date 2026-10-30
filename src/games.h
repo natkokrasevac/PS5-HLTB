@@ -1,5 +1,5 @@
-#ifndef PLAYTIME_GAMES_H
-#define PLAYTIME_GAMES_H
+#ifndef PS5_HLTB_GAMES_H
+#define PS5_HLTB_GAMES_H
 
 #include <stddef.h>
 
@@ -10,7 +10,7 @@
  * system database, and edit the play time. Knows nothing about HTTP or HTML.
  *
  * Play time lives in one table per console user, tbl_iconinfo_<userId>,
- * column playedTimeOnConsole. The unit is seconds (see PLAYTIME_UNIT_SECONDS).
+ * column playedTimeOnConsole. The unit is seconds (see PS5_HLTB_UNIT_SECONDS).
  */
 
 /* Sets the title IDs that are never listed (compared case-insensitively). The
@@ -45,7 +45,7 @@ int games_icon_path(const char *database_path, const char *title_id, char *path,
 
 /* Sets playedTimeOnConsole of one game for one user (user_id is the suffix of
  * tbl_iconinfo_<userId>, as listed in "users"). `value` is in column units
- * (PLAYTIME_UNIT_SECONDS seconds each). Before the first write of a run,
+ * (PS5_HLTB_UNIT_SECONDS seconds each). Before the first write of a run,
  * app.db is copied to GAMES_BACKUP_PATH; if that fails nothing is written.
  * Returns 0 on success, -1 with a message in error_message otherwise. */
 int games_set_playtime(const char *database_path, const char *title_id,

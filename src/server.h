@@ -1,5 +1,5 @@
-#ifndef PLAYTIME_SERVER_H
-#define PLAYTIME_SERVER_H
+#ifndef PS5_HLTB_SERVER_H
+#define PS5_HLTB_SERVER_H
 
 #include <stddef.h>
 
@@ -15,7 +15,7 @@ typedef struct {
     const char *query;   /* text after '?', "" if none (raw, not decoded) */
     const char *body;    /* request body (NUL-terminated, "" if none) */
     size_t body_length;  /* byte length of body */
-    int has_custom_header; /* request carried "<PLAYTIME_CSRF_HEADER>: 1" (CSRF guard) */
+    int has_custom_header; /* request carried "<PS5_HLTB_CSRF_HEADER>: 1" (CSRF guard) */
 } server_request_t;
 
 /* Called once per GET/POST request. The handler must send exactly one response

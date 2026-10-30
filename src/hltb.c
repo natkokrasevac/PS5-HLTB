@@ -217,7 +217,7 @@ static int http_ctx_init(http_ctx_t *ctx, const char *user_agent) {
         g_net_inited = 1;
     }
 
-    ctx->mem_id = sceNetPoolCreate("playtime_hltb", 64 * 1024, 0);
+    ctx->mem_id = sceNetPoolCreate("ps5_hltb", 64 * 1024, 0);
     if(ctx->mem_id < 0) {
         snprintf(g_last_http_error, sizeof g_last_http_error,
                  "sceNetPoolCreate=0x%08X", (unsigned int)ctx->mem_id);
@@ -2228,7 +2228,7 @@ static int read_ps5_game_info(sqlite3 *app_db, const char *user_id,
         if(sqlite3_column_type(stmt, 0) != SQLITE_NULL) {
             long long raw = sqlite3_column_int64(stmt, 0);
             if(raw > 0) {
-                *played_sec_out = raw * (long long)PLAYTIME_UNIT_SECONDS;
+                *played_sec_out = raw * (long long)PS5_HLTB_UNIT_SECONDS;
             }
         }
     } else {

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="dev/Resources/app_banner.png" alt="PS5-HLTB Banner" width="100%">
+  <img src="src/Resources/app_banner.png" alt="PS5-HLTB Banner" width="100%">
 </p>
 
 # PS5-HLTB
@@ -43,19 +43,19 @@ Open it on the console's own browser or from a phone / laptop on the same networ
 ## Screenshots
 
 <p align="center">
-  <img src="dev/Resources/Screenshots/homepage.png" alt="PS5-HLTB Dashboard" width="100%">
+  <img src="src/Resources/Screenshots/homepage.png" alt="PS5-HLTB Dashboard" width="100%">
 </p>
 
 <p align="center">
-  <img src="dev/Resources/Screenshots/game_list.png" alt="Game Library & Play Time Tracking" width="100%">
+  <img src="src/Resources/Screenshots/game_list.png" alt="Game Library & Play Time Tracking" width="100%">
 </p>
 
 <p align="center">
-  <img src="dev/Resources/Screenshots/hltb.png" alt="HowLongToBeat Sync Panel" width="100%">
+  <img src="src/Resources/Screenshots/hltb.png" alt="HowLongToBeat Sync Panel" width="100%">
 </p>
 
 <p align="center">
-  <img src="dev/Resources/Screenshots/game_progress.png" alt="Game Detail & HLTB Stats Modal" width="100%">
+  <img src="src/Resources/Screenshots/game_progress.png" alt="Game Detail & HLTB Stats Modal" width="100%">
 </p>
 
 ## How to compile
@@ -72,10 +72,10 @@ No local SDK installation is required; Docker compiles everything inside an isol
 2. Compile the payload:
    ```sh
    # On Windows (PowerShell):
-   docker run --rm -v "${PWD}:/src" -w /src/dev ps5-builder make clean all
+   docker run --rm -v "${PWD}:/src" -w /src/src ps5-builder make clean all
 
    # On Linux / macOS:
-   docker run --rm -v "$(pwd):/src" -w /src/dev ps5-builder make clean all
+   docker run --rm -v "$(pwd):/src" -w /src/src ps5-builder make clean all
    ```
 
 ### Method 2: Native Build (Linux / WSL2)
@@ -92,9 +92,9 @@ No local SDK installation is required; Docker compiles everything inside an isol
    export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
    ```
 
-3. From the `dev` directory, build the payload:
+3. From the `src` directory, build the payload:
    ```sh
-   cd dev
+   cd src
    make clean all
    ```
 

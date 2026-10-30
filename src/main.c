@@ -8,7 +8,7 @@
  *   web/index.html  the web page, embedded into the payload at build time
  *
  * Open the UI on the PS5 browser (launched automatically) or from any device
- * on the same network at http://<ps5-ip>:<PLAYTIME_PORT from config.h>
+ * on the same network at http://<ps5-ip>:<PS5_HLTB_PORT from config.h>
  */
 
 #include <signal.h>
@@ -56,8 +56,8 @@ INCASSET(res_ps4_logo, "resources/ps4_logo.webp");
 INCASSET(res_ps5_logo, "resources/ps5_logo.png");
 INCASSET(res_app_icon, "resources/app_icon_sm.png");
 
-/* Titles that are NOT listed: edit PLAYTIME_EXCLUDED_TITLES in config.h. */
-static const char *const EXCLUDED_TITLES[] = {PLAYTIME_EXCLUDED_TITLES};
+/* Titles that are NOT listed: edit PS5_HLTB_EXCLUDED_TITLES in config.h. */
+static const char *const EXCLUDED_TITLES[] = {PS5_HLTB_EXCLUDED_TITLES};
 
 int sceUserServiceInitialize(void *arg);
 int sceUserServiceGetUserName(int user_id, char *name, size_t size);
@@ -175,7 +175,7 @@ static void handle_set_playtime(int fd, const server_request_t *req,
         return;
     }
     if(!req->has_custom_header) {
-        send_json_error(fd, 403, "Missing " PLAYTIME_CSRF_HEADER " header.");
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
     if(query_get(req->query, "id", id, sizeof id) != 0 ||
@@ -211,7 +211,7 @@ static void handle_hltb_config(int fd, const server_request_t *req,
         return;
     }
     if(!req->has_custom_header) {
-        send_json_error(fd, 403, "Missing " PLAYTIME_CSRF_HEADER " header.");
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
     (void)param_get(req, "user", user, sizeof user);
@@ -242,7 +242,7 @@ static void handle_hltb_login(int fd, const server_request_t *req,
         return;
     }
     if(!req->has_custom_header) {
-        send_json_error(fd, 403, "Missing " PLAYTIME_CSRF_HEADER " header.");
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
     (void)param_get(req, "user", user, sizeof user);
@@ -271,7 +271,7 @@ static void handle_hltb_logout(int fd, const server_request_t *req,
         return;
     }
     if(!req->has_custom_header) {
-        send_json_error(fd, 403, "Missing " PLAYTIME_CSRF_HEADER " header.");
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
     (void)param_get(req, "user", user, sizeof user);
@@ -300,7 +300,7 @@ static void handle_hltb_select(int fd, const server_request_t *req,
         return;
     }
     if(!req->has_custom_header) {
-        send_json_error(fd, 403, "Missing " PLAYTIME_CSRF_HEADER " header.");
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
     if(param_get(req, "user", user, sizeof user) != 0 ||
@@ -338,7 +338,7 @@ static void handle_hltb_sync(int fd, const server_request_t *req,
         return;
     }
     if(!req->has_custom_header) {
-        send_json_error(fd, 403, "Missing " PLAYTIME_CSRF_HEADER " header.");
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
     if(param_get(req, "force", force_str, sizeof force_str) == 0) {
@@ -361,7 +361,7 @@ static void handle_hltb_match_all(int fd, const server_request_t *req,
         return;
     }
     if(!req->has_custom_header) {
-        send_json_error(fd, 403, "Missing " PLAYTIME_CSRF_HEADER " header.");
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
     (void)hltb_auto_match_library(ctx->database_path, ctx->hltb_database_path);
@@ -429,9 +429,9 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
                  "{\"ip\":\"%s\",\"port\":%d,\"firmware\":\"%s\","
                  "\"version\":\"%s\",\"name\":\"%s\",\"tagline\":\"%s\","
                  "\"author\":\"%s\",\"repo\":\"%s\",\"csrf\":\"%s\"}",
-                 ip, ctx->port, firmware, PAYLOAD_VERSION, PLAYTIME_APP_NAME,
-                 PLAYTIME_TAGLINE, PLAYTIME_AUTHOR, PLAYTIME_REPO_URL,
-                 PLAYTIME_CSRF_HEADER);
+                 ip, ctx->port, firmware, PAYLOAD_VERSION, PS5_HLTB_APP_NAME,
+                 PS5_HLTB_TAGLINE, PS5_HLTB_AUTHOR, PS5_HLTB_REPO_URL,
+                 PS5_HLTB_CSRF_HEADER);
         server_send(fd, 200, "application/json; charset=utf-8", body,
                     strlen(body), 0);
     } else if(strcmp(path, "/api/games") == 0) {
@@ -552,11 +552,11 @@ int main(void) {
 
     ctx.database_path = APP_DB_PATH;
     ctx.hltb_database_path = HLTB_DB_PATH;
-    ctx.port = PLAYTIME_PORT;
+    ctx.port = PS5_HLTB_PORT;
     ctx.firmware_version = kernel_get_fw_version();
 
     klog_printf("[PS5-HLTB] Starting %s %s (PID=%d, port=%d)\n",
-                PLAYTIME_APP_NAME, PAYLOAD_VERSION, (int)getpid(), ctx.port);
+                PS5_HLTB_APP_NAME, PAYLOAD_VERSION, (int)getpid(), ctx.port);
 
     (void)sceUserServiceInitialize(NULL);
     games_set_user_name_resolver(resolve_user_name);
