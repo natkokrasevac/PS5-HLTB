@@ -60,14 +60,45 @@ Open it on the console's own browser or from a phone / laptop on the same networ
 
 ## How to compile
 
-1. Install or prepare the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) (or use Docker).
-2. From the `dev` directory, run:
+### Method 1: Using Docker (Recommended — Windows / macOS / Linux)
 
+No local SDK installation is required; Docker compiles everything inside an isolated container using the included `Dockerfile.builder`:
+
+1. Build the builder container image (one-time setup):
    ```sh
+   docker build -t ps5-builder -f Dockerfile.builder .
+   ```
+
+2. Compile the payload:
+   ```sh
+   # On Windows (PowerShell):
+   docker run --rm -v "${PWD}:/src" -w /src/dev ps5-builder make clean all
+
+   # On Linux / macOS:
+   docker run --rm -v "$(pwd):/src" -w /src/dev ps5-builder make clean all
+   ```
+
+### Method 2: Native Build (Linux / WSL2)
+
+1. Clone and install the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk):
+   ```sh
+   git clone --recurse-submodules https://github.com/ps5-payload-dev/sdk.git
+   cd sdk
+   make install DESTDIR=/opt/ps5-payload-sdk
+   ```
+
+2. Set the SDK environment variable:
+   ```sh
+   export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+   ```
+
+3. From the `dev` directory, build the payload:
+   ```sh
+   cd dev
    make clean all
    ```
 
-The output is `PS5-HLTB-v1.0.0.elf` (and `PS5-HLTB.elf`).
+The compiled output is `PS5-HLTB-v1.0.0.elf` (and `PS5-HLTB.elf`).
 
 ## Credits & Acknowledgments
 
