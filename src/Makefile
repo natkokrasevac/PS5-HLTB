@@ -28,7 +28,7 @@ $(ELF): $(SOURCES) $(HEADERS) $(ASSETS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(SOURCES) $(LDLIBS)
 
 clean:
-	rm -f PS5-HLTB-*.elf PlayTime-*.elf
+	rm -f PS5-HLTB-*.elf
 
 test: $(ELF)
 	$(PS5_DEPLOY) -h $(PS5_HOST) -p $(PS5_PORT) $^
