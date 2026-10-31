@@ -96,6 +96,12 @@ static pthread_mutex_t g_hltb_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int g_net_inited = 0;
 static char g_last_http_error[192] = {0};
 
+/* Live sync status exposed to web frontend */
+static volatile int g_sync_active = 0;
+static volatile int g_sync_step = 0; /* 0: idle, 1: syncing selected, 2: matching library */
+static volatile int g_last_synced_count = 0;
+static char g_sync_msg[128] = "Idle";
+
 /* ---- dynamic string buffer ---------------------------------------------- */
 
 typedef struct {
@@ -1711,7 +1717,16 @@ char *hltb_state_json(const char *hltb_db_path, size_t *length,
     sqlite3_finalize(stmt);
     stmt = NULL;
 
-    if(buffer_append_str(&out, "]}") != 0) {
+    if(buffer_append_str(&out, "]") != 0) {
+        goto oom;
+    }
+
+    snprintf(chunk, sizeof chunk,
+             ",\"syncActive\":%d,\"syncStep\":%d,\"lastSyncedCount\":%d,\"syncMsg\":",
+             g_sync_active, g_sync_step, g_last_synced_count);
+    if(buffer_append_str(&out, chunk) != 0 ||
+       buffer_append_json_string(&out, g_sync_msg[0] ? g_sync_msg : "") != 0 ||
+       buffer_append_str(&out, "}") != 0) {
         goto oom;
     }
 
@@ -2259,9 +2274,15 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
         *synced_count_out = 0;
     }
 
+    g_sync_active = 1;
+    g_sync_step = 1;
+    snprintf(g_sync_msg, sizeof g_sync_msg, "Syncing selected games to HowLongToBeat...");
+
     pthread_mutex_lock(&g_hltb_mutex);
 
     if(open_hltb_db(hltb_db_path, &hltb_db, error_message, error_message_size) != 0) {
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         return -1;
     }
@@ -2331,6 +2352,8 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
 
     if(num_accounts == 0) {
         sqlite3_close(hltb_db);
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         snprintf(error_message, error_message_size,
                  "Not logged in to HowLongToBeat.");
@@ -2347,6 +2370,8 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
         set_db_error(error_message, error_message_size,
                      "Query selected games failed", hltb_db);
         sqlite3_close(hltb_db);
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         return -1;
     }
@@ -2397,6 +2422,8 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
     if(item_count == 0) {
         sqlite3_close(hltb_db);
         free(items);
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         snprintf(error_message, error_message_size,
                  "No games are selected for HLTB sync. Click '+ Select' on games first.");
@@ -2413,6 +2440,8 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
         }
         sqlite3_close(hltb_db);
         free(items);
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         return -1;
     }
@@ -2422,6 +2451,8 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
         sqlite3_close(app_db);
         sqlite3_close(hltb_db);
         free(items);
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         snprintf(error_message, error_message_size,
                  "Failed to initialize PS5 HTTPS client.");
@@ -2600,12 +2631,18 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
     free(items);
     pthread_mutex_unlock(&g_hltb_mutex);
 
+    g_sync_active = 0;
+    g_sync_step = 0;
+    g_last_synced_count = synced_count;
+    if(synced_count > 0) {
+        snprintf(g_sync_msg, sizeof g_sync_msg, "Synced %d game(s) to HowLongToBeat", synced_count);
+    } else {
+        snprintf(g_sync_msg, sizeof g_sync_msg, "Selected games up to date");
+    }
+
     if(synced_count_out) {
         *synced_count_out = synced_count;
     }
-
-    /* Auto-discover & populate HLTB completion times for other games in library */
-    (void)hltb_auto_match_library(app_db_path, hltb_db_path);
 
     return (synced_count == 0 && item_count > 0 && last_error[0]) ? -1 : 0;
 }
@@ -2630,10 +2667,16 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
     int hctx_inited = 0;
     size_t i;
 
+    g_sync_active = 1;
+    g_sync_step = 2;
+    snprintf(g_sync_msg, sizeof g_sync_msg, "Auto-matching games with HowLongToBeat...");
+
     pthread_mutex_lock(&g_hltb_mutex);
 
     if(sqlite3_open_v2(hltb_db_path, &hltb_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
         if(hltb_db) sqlite3_close(hltb_db);
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         return -1;
     }
@@ -2653,6 +2696,8 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
     if(sqlite3_open_v2(app_db_path, &app_db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
         if(app_db) sqlite3_close(app_db);
         sqlite3_close(hltb_db);
+        g_sync_active = 0;
+        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         return -1;
     }
@@ -2775,6 +2820,10 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
     free(cands);
     sqlite3_close(hltb_db);
     pthread_mutex_unlock(&g_hltb_mutex);
+
+    g_sync_active = 0;
+    g_sync_step = 0;
+    snprintf(g_sync_msg, sizeof g_sync_msg, "Library auto-match complete");
     return 0;
 }
 
@@ -2820,16 +2869,30 @@ static void *auto_sync_worker(void *arg) {
     /* Give the network stack and HTTP server a moment to settle on startup */
     sleep(2);
 
-    /* Automatically discover and fetch HLTB times for all library games */
+    /* 1. Fast-path: Sync selected games IMMEDIATELY on launch if enabled */
+    if(is_auto_sync_enabled(args->hltb_db_path)) {
+        err[0] = '\0';
+        (void)hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
+                                 &synced, err, sizeof err);
+    }
+
+    /* 2. Discover and fetch HLTB times for all unmatched library games in background */
     (void)hltb_auto_match_library(args->app_db_path, args->hltb_db_path);
 
+    /* 3. If any newly matched games were marked selected, sync them now */
+    if(is_auto_sync_enabled(args->hltb_db_path)) {
+        err[0] = '\0';
+        (void)hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
+                                 &synced, err, sizeof err);
+    }
+
     for(;;) {
+        sleep(180);
         if(is_auto_sync_enabled(args->hltb_db_path)) {
             err[0] = '\0';
             (void)hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
                                      &synced, err, sizeof err);
         }
-        sleep(180);
     }
 
     free(args);

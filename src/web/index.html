@@ -242,13 +242,22 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
 .gstamp.amber { color: var(--amber); border-color: var(--amber); }
 .gstamp.green { color: var(--green); border-color: var(--green); }
 .gstamp.zero { color: var(--muted); background: var(--inset); border-color: var(--line-strong); }
-.tabs { display: flex; flex-wrap: wrap; margin-bottom: .55rem; border-bottom: 1px solid var(--line); }
+.tabs { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: .55rem; border-bottom: 1px solid var(--line); }
 .tab { margin: 0 .3rem -1px 0; padding: .4rem .9rem; cursor: pointer; font: inherit; font-size: .9rem; font-weight: 600; color: var(--muted); background: transparent; border: 0; border-bottom: 2px solid transparent; }
 .tab:hover { color: var(--text); }
 .tab.on { color: var(--accent); border-bottom-color: var(--accent); }
 .tab:focus { outline: none; }
 .tab:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
 .tab .tbadge { display: inline-block; margin-left: .35rem; padding: .05rem .42rem; font-size: .72rem; font-weight: 800; border-radius: 999px; color: var(--on-amber); background: var(--amber-grad); vertical-align: middle; }
+.sync-pill { display: inline-flex; align-items: center; gap: .45rem; margin: 0 0 .2rem .65rem; padding: .25rem .75rem; font-size: .8rem; font-weight: 700; color: var(--accent); background: rgba(30, 144, 255, 0.12); border: 1px solid rgba(30, 144, 255, 0.35); border-radius: 999px; vertical-align: middle; animation: pulse-sync 2.2s infinite ease-in-out; }
+.sync-spin { width: .75rem; height: .75rem; border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin .85s linear infinite; display: inline-block; flex: 0 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-sync { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+.hltb-sync-bar-wrap { margin: .6rem 0; padding: .6rem .85rem; border-radius: var(--rc); background: rgba(30, 144, 255, 0.08); border: 1px solid rgba(30, 144, 255, 0.28); }
+.hltb-sync-bar { height: 5px; width: 100%; background: rgba(127, 127, 127, 0.2); border-radius: 3px; overflow: hidden; position: relative; }
+.hltb-sync-progress { position: absolute; left: 0; top: 0; bottom: 0; width: 35%; background: var(--grad); border-radius: 3px; animation: sync-indeterminate 1.4s infinite ease-in-out; }
+@keyframes sync-indeterminate { 0% { left: -35%; width: 35%; } 50% { left: 35%; width: 50%; } 100% { left: 100%; width: 35%; } }
+.hltb-sync-status-text { margin-top: .4rem; font-size: .82rem; color: var(--accent); font-weight: 600; }
 .overview .total { margin-bottom: 0; }
 
 .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); grid-gap: .624rem; }
@@ -714,6 +723,10 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       <button class="tab on" id="tabDash" type="button" role="tab" aria-selected="true">Dashboard</button>
       <button class="tab" id="tabTop" type="button" role="tab" aria-selected="false">Top games</button>
       <button class="tab" id="tabHltb" type="button" role="tab" aria-selected="false">HLTB Sync <span class="tbadge" id="hltbTabBadge" style="display:none">0</span></button>
+      <div id="syncIndicator" class="sync-pill" style="display:none;" title="HowLongToBeat auto-sync in progress">
+        <span class="sync-spin"></span>
+        <span id="syncText">Syncing HLTB...</span>
+      </div>
     </div>
     <div class="tright">
       <span class="seg" id="tfmt" role="radiogroup" aria-label="Time format">
@@ -784,6 +797,10 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         <div class="hltb-card">
           <h3>PS5 Native HLTB Auto-Sync</h3>
           <p class="sub" id="hltbAcctStatus">Loading HLTB status...</p>
+          <div id="hltbSyncBar" class="hltb-sync-bar-wrap" style="display:none">
+            <div class="hltb-sync-bar"><div class="hltb-sync-progress"></div></div>
+            <div class="hltb-sync-status-text" id="hltbSyncStatusText">Syncing games to HowLongToBeat...</div>
+          </div>
           <div class="hltb-row">
             <label for="hltbUserSel" class="elabel" style="margin:0">PS5 Profile:</label>
             <select id="hltbUserSel" class="hltb-sel"></select>
@@ -1496,6 +1513,68 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     }
   }
 
+  function updateSyncUI(syncActive, syncMsg) {
+    var ind = $('syncIndicator');
+    var txt = $('syncText');
+    var bar = $('hltbSyncBar');
+    var statusTxt = $('hltbSyncStatusText');
+
+    if (syncActive) {
+      if (ind) {
+        ind.style.display = 'inline-flex';
+        if (txt) { txt.textContent = syncMsg || 'Syncing HLTB...'; }
+      }
+      if (bar) {
+        bar.style.display = 'block';
+        if (statusTxt) { statusTxt.textContent = syncMsg || 'Syncing games to HowLongToBeat...'; }
+      }
+    } else {
+      if (ind) { ind.style.display = 'none'; }
+      if (bar) { bar.style.display = 'none'; }
+    }
+  }
+
+  var syncPollTimer = null;
+  var lastSeenSyncActive = false;
+
+  function pollSyncStatus() {
+    clearTimeout(syncPollTimer);
+    fetch('/api/hltb', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (h) {
+        var isNowActive = h.syncActive ? true : false;
+        var wasActive = lastSeenSyncActive;
+        lastSeenSyncActive = isNowActive;
+
+        prepareHltb(h);
+
+        /* Detect transition from active -> finished */
+        if (wasActive && !isNowActive) {
+          var updated = h.lastSyncedCount || 0;
+          if (updated > 0) {
+            toast('✅ HowLongToBeat synced successfully! (' + updated + ' game' + (updated === 1 ? '' : 's') + ' updated)');
+          } else {
+            toast('✅ HowLongToBeat is synced & up to date.');
+          }
+          renderDashboard();
+          if ($('vHltb').style.display !== 'none') { renderHltbTab(); }
+          if ($('vTop').style.display !== 'none') { renderTopView(); }
+        }
+
+        if (isNowActive) {
+          syncPollTimer = setTimeout(pollSyncStatus, 2000);
+        }
+      })
+      .catch(function () {});
+  }
+
+  function startSyncWatcher() {
+    clearTimeout(syncPollTimer);
+    /* Poll at 2.5s and 6s to detect initial startup sync */
+    setTimeout(pollSyncStatus, 2500);
+    setTimeout(pollSyncStatus, 6000);
+  }
+
   function prepareHltb(h) {
     state.hltb.ps5User = h.ps5User || (state.users[0] || '');
     state.hltb.accounts = h.accounts || {};
@@ -1504,12 +1583,17 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     state.hltb.hltbUsername = h.hltbUsername || '';
     state.hltb.autoSync = h.autoSync !== undefined ? h.autoSync : 1;
     state.hltb.lastSync = h.lastSync || '';
+    state.hltb.syncActive = h.syncActive ? 1 : 0;
+    state.hltb.syncStep = h.syncStep || 0;
+    state.hltb.syncMsg = h.syncMsg || '';
+    state.hltb.lastSyncedCount = h.lastSyncedCount !== undefined ? h.lastSyncedCount : 0;
     state.hltb.map = {};
     var list = h.games || [];
     for (var i = 0; i < list.length; i++) {
       var item = list[i];
       state.hltb.map[item.user + ':' + item.id] = item;
     }
+    updateSyncUI(state.hltb.syncActive, state.hltb.syncMsg);
   }
 
   function activeHltbAccount() {
@@ -2247,7 +2331,8 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     }
     var btn = forceAll ? $('hltbSyncAll') : $('hltbSyncNow');
     btn.disabled = true;
-    toast('Syncing selected games to HLTB from PS5...');
+    updateSyncUI(true, 'Syncing selected games to HowLongToBeat...');
+    lastSeenSyncActive = true;
     fetch('/api/hltb/sync' + (forceAll ? '?force=1' : ''), {
       method: 'POST',
       headers: csrfHeaders()
@@ -2259,12 +2344,14 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         if ((d.synced || 0) === 0) {
           toast('All selected games are already up to date on HLTB! Click "Force Sync Selected" to re-push.');
         } else {
-          toast('Synced ' + d.synced + ' selected game(s) to HLTB!');
+          toast('✅ Synced ' + d.synced + ' selected game(s) to HLTB!');
         }
+        updateSyncUI(false);
         load();
       })
       .catch(function (e) {
         btn.disabled = false;
+        updateSyncUI(false);
         toast((e && e.message) ? e.message : 'HLTB sync failed');
       });
   }
@@ -2749,7 +2836,8 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   $('hltbMatchAll').onclick = function () {
     var btn = this;
     btn.disabled = true;
-    toast('Auto-matching all library games with HowLongToBeat...');
+    updateSyncUI(true, 'Auto-matching library games with HowLongToBeat...');
+    lastSeenSyncActive = true;
     fetch('/api/hltb/match-all', {
       method: 'POST',
       headers: csrfHeaders()
@@ -2758,11 +2846,13 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       .then(function (d) {
         btn.disabled = false;
         if (d.error) { throw new Error(d.error); }
-        toast('Library auto-match complete!');
+        updateSyncUI(false);
+        toast('✅ Library auto-match complete!');
         load();
       })
       .catch(function (e) {
         btn.disabled = false;
+        updateSyncUI(false);
         toast((e && e.message) ? e.message : 'Auto-match failed');
       });
   };
@@ -2901,6 +2991,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         if (d.error) { throw new Error(d.error); }
         prepare(d);
         prepareHltb(h);
+        if (h && h.syncActive) { lastSeenSyncActive = true; pollSyncStatus(); }
         renderDashboard();
         renderGrid();
         try {
@@ -2963,6 +3054,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         serverUrl = 'http://' + hostPort;
         renderSideAccess();
         load();
+        startSyncWatcher();
       })
       .catch(function () {
         if ($('addr')) { $('addr').textContent = location.host; }
@@ -2971,6 +3063,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         setCredit('Mahdi Hosseini', 'https://github.com/natkokrasevac/PS5-HLTB');
         renderSideAccess();
         load();
+        startSyncWatcher();
       });
   }
 
