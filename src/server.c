@@ -150,6 +150,9 @@ int server_start(int port) {
         close(fd);
         return -1;
     }
+#ifdef SO_REUSEPORT
+    (void)setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof opt);
+#endif
 
     memset(&addr, 0, sizeof addr);
     addr.sin_family = AF_INET;
@@ -325,8 +328,9 @@ static int read_request(int fd, char *method, size_t method_size, char *path,
 }
 
 int server_run(int listen_fd, server_handler_t handler, void *user) {
-    /* A write to a closed socket must not kill the payload. */
+    /* A write to a closed socket or session drop must not kill the payload. */
     signal(SIGPIPE, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
 
     for(;;) {
         char method[16];

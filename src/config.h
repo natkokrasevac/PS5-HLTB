@@ -9,7 +9,7 @@
 
 /* Version is normally injected by the Makefile (-DPAYLOAD_VERSION). */
 #ifndef PAYLOAD_VERSION
-#define PAYLOAD_VERSION "v1.0.0"
+#define PAYLOAD_VERSION "v1.1.0"
 #endif
 
 /* Branding shown in the web UI (sent to the page by GET /api/info; do not use

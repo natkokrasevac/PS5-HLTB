@@ -552,6 +552,10 @@ int main(void) {
 
     terminate_previous_instance();
 
+    /* Prevent signal drops (e.g. SIGHUP on network disconnect) from killing the payload */
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
+
     /* Name shown in the running-process list (see config.h). */
     syscall(SYS_thr_set_name, -1, PAYLOAD_PROCESS_NAME);
 
@@ -595,6 +599,34 @@ int main(void) {
     hltb_start_auto_sync_thread(ctx.database_path, ctx.hltb_database_path);
 
     launch_ps5_browser(ctx.port);
-    server_run(listen_fd, handle_request, &ctx);
+
+    /* Main server loop with automatic recovery across Rest Mode / network drops */
+    for(;;) {
+        server_run(listen_fd, handle_request, &ctx);
+
+        klog_printf("[PS5-HLTB] Server loop interrupted (errno=%d), recovering from rest mode...\n", errno);
+        if(listen_fd >= 0) {
+            close(listen_fd);
+            listen_fd = -1;
+        }
+
+        /* Wait for PS5 network stack to wake up and stabilize after Rest Mode */
+        sleep(2);
+
+        while((listen_fd = server_start(ctx.port)) < 0) {
+            sleep(2);
+        }
+
+        klog_printf("[PS5-HLTB] HTTP server recovered on port %d (fd=%d)\n",
+                    ctx.port, listen_fd);
+        ps5_notify("PS5-HLTB: Resumed from Rest Mode\nReady on port %d", ctx.port);
+
+        /* Trigger a sync check after waking up */
+        char sync_err[256] = {0};
+        int synced = 0;
+        (void)hltb_sync_selected(ctx.database_path, ctx.hltb_database_path, 0,
+                                 &synced, sync_err, sizeof sync_err);
+    }
+
     return 0;
 }

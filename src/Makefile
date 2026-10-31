@@ -7,7 +7,7 @@ else
     $(error PS5_PAYLOAD_SDK is undefined)
 endif
 
-PAYLOAD_VERSION ?= v1.0.0
+PAYLOAD_VERSION ?= v1.1.0
 ELF := PS5-HLTB-$(PAYLOAD_VERSION).elf
 
 SOURCES := main.c games.c hltb.c server.c sqlite/sqlite3.c
