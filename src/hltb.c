@@ -1560,6 +1560,20 @@ static int open_hltb_db(const char *path, sqlite3 **out_db, char *error_message,
         }
     }
 
+    /* Synchronize cached completion times across local user profiles for shared games */
+    (void)sqlite3_exec(
+        db,
+        "UPDATE hltb_games "
+        "SET hltb_game_id = COALESCE(NULLIF(hltb_game_id, 0), (SELECT hltb_game_id FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.hltb_game_id > 0 LIMIT 1), 0), "
+        "    hltb_title = COALESCE(NULLIF(hltb_title, ''), (SELECT hltb_title FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.hltb_title != '' LIMIT 1), ''), "
+        "    comp_main = COALESCE(NULLIF(comp_main, 0), (SELECT comp_main FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_main > 0 LIMIT 1), 0), "
+        "    comp_plus = COALESCE(NULLIF(comp_plus, 0), (SELECT comp_plus FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_plus > 0 LIMIT 1), 0), "
+        "    comp_100 = COALESCE(NULLIF(comp_100, 0), (SELECT comp_100 FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_100 > 0 LIMIT 1), 0), "
+        "    comp_all = COALESCE(NULLIF(comp_all, 0), (SELECT comp_all FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_all > 0 LIMIT 1), 0) "
+        "WHERE (comp_main <= 0 AND comp_all <= 0) "
+        "  AND title_id IN (SELECT title_id FROM hltb_games WHERE comp_main > 0 OR comp_all > 0);",
+        NULL, NULL, NULL);
+
     *out_db = db;
     return 0;
 }
@@ -2565,6 +2579,41 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
             search_name = ps5_title[0] ? ps5_title : it->title_id;
         }
 
+        /* Cross-User Cache Sharing: check if another profile already matched this game */
+        if(it->hltb_game_id <= 0 || (it->comp_main == 0 && it->comp_all == 0)) {
+            sqlite3_stmt *cstmt = NULL;
+            if(sqlite3_prepare_v2(hltb_db,
+                                  "SELECT hltb_game_id, hltb_title, comp_main, comp_plus, comp_100, comp_all "
+                                  "FROM hltb_games WHERE title_id = ?1 AND (hltb_game_id > 0 OR comp_main > 0 OR comp_all > 0) "
+                                  "ORDER BY (comp_main > 0 OR comp_all > 0) DESC, hltb_game_id DESC LIMIT 1",
+                                  -1, &cstmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(cstmt, 1, it->title_id, -1, SQLITE_STATIC);
+                if(sqlite3_step(cstmt) == SQLITE_ROW) {
+                    long long cached_gid = sqlite3_column_int64(cstmt, 0);
+                    const char *cached_title = (const char *)sqlite3_column_text(cstmt, 1);
+                    long long c_main = sqlite3_column_int64(cstmt, 2);
+                    long long c_plus = sqlite3_column_int64(cstmt, 3);
+                    long long c_100 = sqlite3_column_int64(cstmt, 4);
+                    long long c_all = sqlite3_column_int64(cstmt, 5);
+
+                    if(it->hltb_game_id <= 0 && cached_gid > 0) {
+                        it->hltb_game_id = cached_gid;
+                    }
+                    if(!it->hltb_title[0] && cached_title && cached_title[0]) {
+                        snprintf(it->hltb_title, sizeof it->hltb_title, "%s", cached_title);
+                    }
+                    if(it->comp_main <= 0 && c_main > 0) it->comp_main = c_main;
+                    if(it->comp_plus <= 0 && c_plus > 0) it->comp_plus = c_plus;
+                    if(it->comp_100 <= 0 && c_100 > 0) it->comp_100 = c_100;
+                    if(it->comp_all <= 0 && c_all > 0) it->comp_all = c_all;
+
+                    klog_printf("[PS5-HLTB] Reused cached HLTB match for %s ('%s') from another profile -> #%lld\n",
+                                it->title_id, it->hltb_title, it->hltb_game_id);
+                }
+                sqlite3_finalize(cstmt);
+            }
+        }
+
         if(it->hltb_game_id <= 0) {
             snprintf(g_sync_msg, sizeof g_sync_msg, "Matching '%s' on HowLongToBeat...", search_name);
             if(hltb_api_search_game(&hctx, search_name, &it->hltb_game_id,
@@ -2649,6 +2698,31 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
             }
             sqlite3_finalize(up);
             up = NULL;
+
+            /* Propagate matched completion times to any other local profiles with missing times */
+            sqlite3_stmt *prop_stmt = NULL;
+            if(sqlite3_prepare_v2(
+                   hltb_db,
+                   "UPDATE hltb_games SET "
+                   "hltb_game_id = CASE WHEN hltb_game_id <= 0 THEN ?1 ELSE hltb_game_id END, "
+                   "hltb_title = CASE WHEN hltb_title = '' THEN ?2 ELSE hltb_title END, "
+                   "comp_main = CASE WHEN comp_main <= 0 THEN ?3 ELSE comp_main END, "
+                   "comp_plus = CASE WHEN comp_plus <= 0 THEN ?4 ELSE comp_plus END, "
+                   "comp_100 = CASE WHEN comp_100 <= 0 THEN ?5 ELSE comp_100 END, "
+                   "comp_all = CASE WHEN comp_all <= 0 THEN ?6 ELSE comp_all END, "
+                   "updated_at = datetime('now', 'localtime') "
+                   "WHERE title_id = ?7 AND (comp_main <= 0 AND comp_all <= 0)",
+                   -1, &prop_stmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_int64(prop_stmt, 1, (sqlite3_int64)it->hltb_game_id);
+                sqlite3_bind_text(prop_stmt, 2, it->hltb_title, -1, SQLITE_STATIC);
+                sqlite3_bind_int64(prop_stmt, 3, (sqlite3_int64)it->comp_main);
+                sqlite3_bind_int64(prop_stmt, 4, (sqlite3_int64)it->comp_plus);
+                sqlite3_bind_int64(prop_stmt, 5, (sqlite3_int64)it->comp_100);
+                sqlite3_bind_int64(prop_stmt, 6, (sqlite3_int64)it->comp_all);
+                sqlite3_bind_text(prop_stmt, 7, it->title_id, -1, SQLITE_STATIC);
+                (void)sqlite3_step(prop_stmt);
+            }
+            sqlite3_finalize(prop_stmt);
 
             /* Also update last_sync for this PS5 profile */
             if(sqlite3_prepare_v2(
@@ -2758,17 +2832,28 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path, i
     }
     sqlite3_busy_timeout(app_db, 5000);
 
-    /* If no default user, pick first user from app_db */
-    if(!default_user[0]) {
-        if(sqlite3_prepare_v2(app_db, "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'tbl_iconinfo_%'", -1, &stmt, NULL) == SQLITE_OK &&
-           sqlite3_step(stmt) == SQLITE_ROW) {
+    char user_ids[16][24];
+    size_t num_users = 0;
+
+    /* Collect all users present in app_db */
+    if(sqlite3_prepare_v2(app_db, "SELECT name FROM sqlite_master WHERE type='table' AND name GLOB 'tbl_iconinfo_*'", -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW && num_users < 16) {
             const char *tbl = (const char *)sqlite3_column_text(stmt, 0);
             if(tbl && strlen(tbl) > 13) {
-                snprintf(default_user, sizeof default_user, "%s", tbl + 13);
+                snprintf(user_ids[num_users], sizeof user_ids[num_users], "%s", tbl + 13);
+                num_users++;
             }
         }
-        sqlite3_finalize(stmt);
-        stmt = NULL;
+    }
+    sqlite3_finalize(stmt);
+    stmt = NULL;
+
+    if(!default_user[0] && num_users > 0) {
+        snprintf(default_user, sizeof default_user, "%s", user_ids[0]);
+    }
+    if(num_users == 0) {
+        snprintf(user_ids[0], sizeof user_ids[0], "%s", default_user[0] ? default_user : "0");
+        num_users = 1;
     }
 
     /* Query non-homebrew games from tbl_contentinfo */
@@ -2804,7 +2889,8 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path, i
     for(i = 0; i < cand_count; i++) {
         sqlite3_stmt *chk = NULL;
         if(sqlite3_prepare_v2(hltb_db,
-                              "SELECT hltb_game_id, comp_main, comp_all, updated_at FROM hltb_games WHERE title_id = ?1",
+                              "SELECT hltb_game_id, comp_main, comp_all, updated_at FROM hltb_games WHERE title_id = ?1 "
+                              "ORDER BY (comp_main > 0 OR comp_all > 0) DESC, (hltb_game_id > 0) DESC, updated_at DESC LIMIT 1",
                               -1, &chk, NULL) == SQLITE_OK) {
             sqlite3_bind_text(chk, 1, cands[i].title_id, -1, SQLITE_STATIC);
             if(sqlite3_step(chk) == SQLITE_ROW) {
@@ -2871,54 +2957,74 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path, i
         }
 
         if(gid > 0 && (c_main > 0 || c_all > 0)) {
-            sqlite3_stmt *ins = NULL;
-            if(sqlite3_prepare_v2(
-                   hltb_db,
-                   "INSERT INTO hltb_games (user_id, title_id, selected, hltb_title, "
-                   "hltb_game_id, list_type, synced_seconds, comp_main, comp_plus, comp_100, comp_all, updated_at) "
-                   "VALUES (?1, ?2, 0, ?3, ?4, 'playing', -1, ?5, ?6, ?7, ?8, datetime('now', 'localtime')) "
-                   "ON CONFLICT(user_id, title_id) DO UPDATE SET "
-                   "hltb_title = CASE WHEN excluded.hltb_title != '' THEN excluded.hltb_title ELSE hltb_title END, "
-                   "hltb_game_id = CASE WHEN excluded.hltb_game_id > 0 THEN excluded.hltb_game_id ELSE hltb_game_id END, "
-                   "comp_main = excluded.comp_main, comp_plus = excluded.comp_plus, "
-                   "comp_100 = excluded.comp_100, comp_all = excluded.comp_all, "
-                   "updated_at = datetime('now', 'localtime')",
-                   -1, &ins, NULL) == SQLITE_OK) {
-                sqlite3_bind_text(ins, 1, default_user[0] ? default_user : "0", -1, SQLITE_STATIC);
-                sqlite3_bind_text(ins, 2, cands[i].title_id, -1, SQLITE_STATIC);
-                sqlite3_bind_text(ins, 3, matched[0] ? matched : cands[i].title_name, -1, SQLITE_STATIC);
-                sqlite3_bind_int64(ins, 4, gid);
-                sqlite3_bind_int64(ins, 5, c_main);
-                sqlite3_bind_int64(ins, 6, c_plus);
-                sqlite3_bind_int64(ins, 7, c_100);
-                sqlite3_bind_int64(ins, 8, c_all);
-                (void)sqlite3_step(ins);
+            size_t u;
+            for(u = 0; u < num_users; u++) {
+                sqlite3_stmt *ins = NULL;
+                if(sqlite3_prepare_v2(
+                       hltb_db,
+                       "INSERT INTO hltb_games (user_id, title_id, selected, hltb_title, "
+                       "hltb_game_id, list_type, synced_seconds, comp_main, comp_plus, comp_100, comp_all, updated_at) "
+                       "VALUES (?1, ?2, 0, ?3, ?4, 'playing', -1, ?5, ?6, ?7, ?8, datetime('now', 'localtime')) "
+                       "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+                       "hltb_title = CASE WHEN excluded.hltb_title != '' THEN excluded.hltb_title ELSE hltb_title END, "
+                       "hltb_game_id = CASE WHEN excluded.hltb_game_id > 0 THEN excluded.hltb_game_id ELSE hltb_game_id END, "
+                       "comp_main = excluded.comp_main, comp_plus = excluded.comp_plus, "
+                       "comp_100 = excluded.comp_100, comp_all = excluded.comp_all, "
+                       "updated_at = datetime('now', 'localtime')",
+                       -1, &ins, NULL) == SQLITE_OK) {
+                    sqlite3_bind_text(ins, 1, user_ids[u], -1, SQLITE_STATIC);
+                    sqlite3_bind_text(ins, 2, cands[i].title_id, -1, SQLITE_STATIC);
+                    sqlite3_bind_text(ins, 3, matched[0] ? matched : cands[i].title_name, -1, SQLITE_STATIC);
+                    sqlite3_bind_int64(ins, 4, gid);
+                    sqlite3_bind_int64(ins, 5, c_main);
+                    sqlite3_bind_int64(ins, 6, c_plus);
+                    sqlite3_bind_int64(ins, 7, c_100);
+                    sqlite3_bind_int64(ins, 8, c_all);
+                    (void)sqlite3_step(ins);
+                }
+                sqlite3_finalize(ins);
             }
-            sqlite3_finalize(ins);
-            klog_printf("[PS5-HLTB] Auto-matched %s ('%s') -> HLTB #%lld (%llds)\n",
-                        cands[i].title_id, cands[i].title_name, gid, c_main);
+            klog_printf("[PS5-HLTB] Auto-matched %s ('%s') -> HLTB #%lld (%llds) across %zu profile(s)\n",
+                        cands[i].title_id, cands[i].title_name, gid, c_main, num_users);
             matched_count++;
         } else {
-            /* Record that game was checked so we don't query it repeatedly every boot */
-            sqlite3_stmt *ins = NULL;
-            if(sqlite3_prepare_v2(
-                   hltb_db,
-                   "INSERT INTO hltb_games (user_id, title_id, selected, hltb_title, "
-                   "hltb_game_id, list_type, synced_seconds, comp_main, comp_plus, comp_100, comp_all, updated_at) "
-                   "VALUES (?1, ?2, 0, ?3, 0, 'playing', -1, 0, 0, 0, 0, datetime('now', 'localtime')) "
-                   "ON CONFLICT(user_id, title_id) DO UPDATE SET "
-                   "updated_at = datetime('now', 'localtime')",
-                   -1, &ins, NULL) == SQLITE_OK) {
-                sqlite3_bind_text(ins, 1, default_user[0] ? default_user : "0", -1, SQLITE_STATIC);
-                sqlite3_bind_text(ins, 2, cands[i].title_id, -1, SQLITE_STATIC);
-                sqlite3_bind_text(ins, 3, cands[i].title_name, -1, SQLITE_STATIC);
-                (void)sqlite3_step(ins);
+            /* Record that game was checked across all users so we don't query it repeatedly every boot */
+            size_t u;
+            for(u = 0; u < num_users; u++) {
+                sqlite3_stmt *ins = NULL;
+                if(sqlite3_prepare_v2(
+                       hltb_db,
+                       "INSERT INTO hltb_games (user_id, title_id, selected, hltb_title, "
+                       "hltb_game_id, list_type, synced_seconds, comp_main, comp_plus, comp_100, comp_all, updated_at) "
+                       "VALUES (?1, ?2, 0, ?3, 0, 'playing', -1, 0, 0, 0, 0, datetime('now', 'localtime')) "
+                       "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+                       "updated_at = datetime('now', 'localtime')",
+                       -1, &ins, NULL) == SQLITE_OK) {
+                    sqlite3_bind_text(ins, 1, user_ids[u], -1, SQLITE_STATIC);
+                    sqlite3_bind_text(ins, 2, cands[i].title_id, -1, SQLITE_STATIC);
+                    sqlite3_bind_text(ins, 3, cands[i].title_name, -1, SQLITE_STATIC);
+                    (void)sqlite3_step(ins);
+                }
+                sqlite3_finalize(ins);
             }
-            sqlite3_finalize(ins);
-            klog_printf("[PS5-HLTB] No HLTB match for %s ('%s'), marked checked\n",
-                        cands[i].title_id, cands[i].title_name);
+            klog_printf("[PS5-HLTB] No HLTB match for %s ('%s'), marked checked for %zu profile(s)\n",
+                        cands[i].title_id, cands[i].title_name, num_users);
         }
     }
+
+    /* Synchronize cached completion times across all local profiles for shared games */
+    (void)sqlite3_exec(
+        hltb_db,
+        "UPDATE hltb_games "
+        "SET hltb_game_id = COALESCE(NULLIF(hltb_game_id, 0), (SELECT hltb_game_id FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.hltb_game_id > 0 LIMIT 1), 0), "
+        "    hltb_title = COALESCE(NULLIF(hltb_title, ''), (SELECT hltb_title FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.hltb_title != '' LIMIT 1), ''), "
+        "    comp_main = COALESCE(NULLIF(comp_main, 0), (SELECT comp_main FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_main > 0 LIMIT 1), 0), "
+        "    comp_plus = COALESCE(NULLIF(comp_plus, 0), (SELECT comp_plus FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_plus > 0 LIMIT 1), 0), "
+        "    comp_100 = COALESCE(NULLIF(comp_100, 0), (SELECT comp_100 FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_100 > 0 LIMIT 1), 0), "
+        "    comp_all = COALESCE(NULLIF(comp_all, 0), (SELECT comp_all FROM hltb_games g2 WHERE g2.title_id = hltb_games.title_id AND g2.comp_all > 0 LIMIT 1), 0) "
+        "WHERE (comp_main <= 0 AND comp_all <= 0) "
+        "  AND title_id IN (SELECT title_id FROM hltb_games WHERE comp_main > 0 OR comp_all > 0);",
+        NULL, NULL, NULL);
 
     if(hctx_inited) {
         http_ctx_fini(&hctx);
