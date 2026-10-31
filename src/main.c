@@ -346,6 +346,9 @@ static void handle_hltb_sync(int fd, const server_request_t *req,
     }
     if(hltb_sync_selected(ctx->database_path, ctx->hltb_database_path, force,
                           &synced, error, sizeof error) != 0) {
+        if(strstr(error, "session expired") || strstr(error, "401") || strstr(error, "403")) {
+            hltb_notify_session_expired();
+        }
         send_json_error(fd, 400, error[0] ? error : "HLTB sync failed.");
         return;
     }
@@ -369,7 +372,7 @@ static void handle_hltb_match_all(int fd, const server_request_t *req,
         send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
         return;
     }
-    (void)hltb_auto_match_library(ctx->database_path, ctx->hltb_database_path);
+    (void)hltb_auto_match_library(ctx->database_path, ctx->hltb_database_path, 1);
     server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true}", 11, 0);
 }
 
@@ -626,6 +629,7 @@ int main(void) {
         int synced = 0;
         (void)hltb_sync_selected(ctx.database_path, ctx.hltb_database_path, 0,
                                  &synced, sync_err, sizeof sync_err);
+        (void)hltb_auto_match_library(ctx.database_path, ctx.hltb_database_path, 0);
     }
 
     return 0;

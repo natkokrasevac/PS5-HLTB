@@ -124,6 +124,19 @@ static volatile int g_sync_step = 0; /* 0: idle, 1: syncing selected, 2: matchin
 static volatile int g_last_synced_count = 0;
 static char g_sync_msg[128] = "Idle";
 
+/* Track session expiration and ensure notification is only sent once until re-login */
+static volatile int g_session_expired = 0;
+static volatile int g_session_expired_notified = 0;
+
+void hltb_notify_session_expired(void) {
+    g_session_expired = 1;
+    if(!g_session_expired_notified) {
+        g_session_expired_notified = 1;
+        ps5_notify("PS5-HLTB: Session expired\nPlease log in via Web UI");
+        klog_printf("[PS5-HLTB] Session expired notification displayed on PS5 screen\n");
+    }
+}
+
 /* ---- dynamic string buffer ---------------------------------------------- */
 
 typedef struct {
@@ -1368,10 +1381,22 @@ static int hltb_api_submit_progress(http_ctx_t *hctx, const char *cookie,
     free(payload.data);
 
     if(resp.data && json_extract_error(resp.data, error_message, error_message_size) == 0) {
+        if(status == 401 || status == 403 || strstr(error_message, "Unauthorized") || strstr(error_message, "session") || strstr(error_message, "auth")) {
+            snprintf(error_message, error_message_size,
+                     "HLTB session expired or invalid (HTTP %d).", status);
+            free(resp.data);
+            return -2;
+        }
         free(resp.data);
         return -1;
     }
     if(status < 200 || status >= 300) {
+        if(status == 401 || status == 403) {
+            snprintf(error_message, error_message_size,
+                     "HLTB session expired (HTTP %d).", status);
+            free(resp.data);
+            return -2;
+        }
         snprintf(error_message, error_message_size,
                  "HLTB /api/submit returned HTTP %d.", status);
         free(resp.data);
@@ -1603,8 +1628,8 @@ char *hltb_state_json(const char *hltb_db_path, size_t *length,
            buffer_append_json_string(&out, cur_ps5_user) != 0) {
             goto oom;
         }
-        snprintf(chunk, sizeof chunk, ",\"loggedIn\":%d,\"hltbUserId\":%lld,\"hltbUsername\":",
-                 logged_in, hltb_uid);
+        snprintf(chunk, sizeof chunk, ",\"loggedIn\":%d,\"sessionExpired\":%d,\"hltbUserId\":%lld,\"hltbUsername\":",
+                 logged_in, g_session_expired ? 1 : 0, hltb_uid);
         if(buffer_append_str(&out, chunk) != 0 ||
            buffer_append_json_string(&out, hltb_uname ? hltb_uname : "") != 0) {
             goto oom;
@@ -1657,8 +1682,8 @@ char *hltb_state_json(const char *hltb_db_path, size_t *length,
                buffer_append_str(&out, "\":{\"loggedIn\":") != 0) {
                 goto oom;
             }
-            snprintf(chunk, sizeof chunk, "%d,\"hltbUserId\":%lld,\"hltbUsername\":",
-                     a_logged, ah_uid);
+            snprintf(chunk, sizeof chunk, "%d,\"sessionExpired\":%d,\"hltbUserId\":%lld,\"hltbUsername\":",
+                     a_logged, g_session_expired ? 1 : 0, ah_uid);
             if(buffer_append_str(&out, chunk) != 0 ||
                buffer_append_json_string(&out, ah_name ? ah_name : "") != 0) {
                 goto oom;
@@ -1998,6 +2023,8 @@ int hltb_login(const char *hltb_db_path, const char *ps5_user_id,
 
     sqlite3_finalize(stmt);
     sqlite3_close(db);
+    g_session_expired = 0;
+    g_session_expired_notified = 0;
     pthread_mutex_unlock(&g_hltb_mutex);
     return 0;
 }
@@ -2046,6 +2073,8 @@ int hltb_logout(const char *hltb_db_path, const char *ps5_user_id,
     }
 
     sqlite3_close(db);
+    g_session_expired = 0;
+    g_session_expired_notified = 0;
     pthread_mutex_unlock(&g_hltb_mutex);
     return 0;
 }
@@ -2586,11 +2615,12 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
                     it->title_id, it->hltb_title, (long long)it->hltb_game_id,
                     (long long)it->hltb_submission_id, it->list_type, it->user_id, played_sec, prev_sec);
 
-        if(hltb_api_submit_progress(&hctx, acct->session_cookie, acct->hltb_user_id,
-                                    it->hltb_game_id, it->hltb_submission_id,
-                                    it->hltb_title, is_ps5, played_sec, prev_sec,
-                                    &lists, &new_sub_id, sub_err,
-                                    sizeof sub_err) == 0) {
+        int sub_rc = hltb_api_submit_progress(&hctx, acct->session_cookie, acct->hltb_user_id,
+                                              it->hltb_game_id, it->hltb_submission_id,
+                                              it->hltb_title, is_ps5, played_sec, prev_sec,
+                                              &lists, &new_sub_id, sub_err,
+                                              sizeof sub_err);
+        if(sub_rc == 0) {
             sqlite3_stmt *up = NULL;
             if(new_sub_id > 1) {
                 it->hltb_submission_id = new_sub_id;
@@ -2631,6 +2661,9 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
             sqlite3_finalize(up);
             synced_count++;
         } else if(sub_err[0]) {
+            if(sub_rc == -2 || strstr(sub_err, "session expired") || strstr(sub_err, "401") || strstr(sub_err, "403")) {
+                hltb_notify_session_expired();
+            }
             snprintf(last_error, sizeof last_error, "%s", sub_err);
             if(error_message && error_message_size > 0) {
                 snprintf(error_message, error_message_size, "%s", sub_err);
@@ -2675,7 +2708,7 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
 
 /* ---- Library Auto-Discovery & Background Auto-Sync Thread --------------- */
 
-int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
+int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path, int force_all) {
     sqlite3 *app_db = NULL;
     sqlite3 *hltb_db = NULL;
     sqlite3_stmt *stmt = NULL;
@@ -2686,23 +2719,21 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
         long long hltb_id;
         long long comp_main;
         long long comp_all;
+        int checked;
+        int needs_match;
     } cand_t;
     cand_t *cands = NULL;
     size_t cand_count = 0, cand_cap = 0;
+    size_t unmatched_count = 0;
+    size_t matched_count = 0;
     http_ctx_t hctx;
     int hctx_inited = 0;
     size_t i;
-
-    g_sync_active = 1;
-    g_sync_step = 2;
-    snprintf(g_sync_msg, sizeof g_sync_msg, "Auto-matching games with HowLongToBeat...");
 
     pthread_mutex_lock(&g_hltb_mutex);
 
     if(sqlite3_open_v2(hltb_db_path, &hltb_db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
         if(hltb_db) sqlite3_close(hltb_db);
-        g_sync_active = 0;
-        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         return -1;
     }
@@ -2722,8 +2753,6 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
     if(sqlite3_open_v2(app_db_path, &app_db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
         if(app_db) sqlite3_close(app_db);
         sqlite3_close(hltb_db);
-        g_sync_active = 0;
-        g_sync_step = 0;
         pthread_mutex_unlock(&g_hltb_mutex);
         return -1;
     }
@@ -2771,23 +2800,54 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
     sqlite3_close(app_db);
     app_db = NULL;
 
-    /* For each game, check if already in hltb_db with times */
+    /* For each game, check if already in hltb_db with times or checked */
     for(i = 0; i < cand_count; i++) {
         sqlite3_stmt *chk = NULL;
         if(sqlite3_prepare_v2(hltb_db,
-                              "SELECT hltb_game_id, comp_main, comp_all FROM hltb_games WHERE title_id = ?1",
+                              "SELECT hltb_game_id, comp_main, comp_all, updated_at FROM hltb_games WHERE title_id = ?1",
                               -1, &chk, NULL) == SQLITE_OK) {
             sqlite3_bind_text(chk, 1, cands[i].title_id, -1, SQLITE_STATIC);
             if(sqlite3_step(chk) == SQLITE_ROW) {
                 cands[i].hltb_id = sqlite3_column_int64(chk, 0);
                 cands[i].comp_main = sqlite3_column_int64(chk, 1);
                 cands[i].comp_all = sqlite3_column_int64(chk, 2);
+                const char *up = (const char *)sqlite3_column_text(chk, 3);
+                if(up && up[0] != '\0') {
+                    cands[i].checked = 1;
+                }
             }
         }
         sqlite3_finalize(chk);
 
-        /* If already has times, skip */
-        if(cands[i].comp_main > 0 || cands[i].comp_all > 0) {
+        /* Determine if this game needs matching */
+        if(!force_all) {
+            if(cands[i].comp_main > 0 || cands[i].comp_all > 0 || cands[i].checked) {
+                continue;
+            }
+        }
+
+        cands[i].needs_match = 1;
+        unmatched_count++;
+    }
+
+    /* Fast path: if no unmatched games, exit immediately without network or UI changes */
+    if(unmatched_count == 0) {
+        free(cands);
+        sqlite3_close(hltb_db);
+        pthread_mutex_unlock(&g_hltb_mutex);
+        return 0;
+    }
+
+    g_sync_active = 1;
+    g_sync_step = 2;
+    if(unmatched_count == cand_count) {
+        snprintf(g_sync_msg, sizeof g_sync_msg, "Auto-matching all games with HowLongToBeat...");
+    } else {
+        snprintf(g_sync_msg, sizeof g_sync_msg, "Auto-matching %zu new game(s) with HowLongToBeat...", unmatched_count);
+    }
+
+    for(i = 0; i < cand_count; i++) {
+        if(!cands[i].needs_match) {
             continue;
         }
 
@@ -2837,6 +2897,26 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
             sqlite3_finalize(ins);
             klog_printf("[PS5-HLTB] Auto-matched %s ('%s') -> HLTB #%lld (%llds)\n",
                         cands[i].title_id, cands[i].title_name, gid, c_main);
+            matched_count++;
+        } else {
+            /* Record that game was checked so we don't query it repeatedly every boot */
+            sqlite3_stmt *ins = NULL;
+            if(sqlite3_prepare_v2(
+                   hltb_db,
+                   "INSERT INTO hltb_games (user_id, title_id, selected, hltb_title, "
+                   "hltb_game_id, list_type, synced_seconds, comp_main, comp_plus, comp_100, comp_all, updated_at) "
+                   "VALUES (?1, ?2, 0, ?3, 0, 'playing', -1, 0, 0, 0, 0, datetime('now', 'localtime')) "
+                   "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+                   "updated_at = datetime('now', 'localtime')",
+                   -1, &ins, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(ins, 1, default_user[0] ? default_user : "0", -1, SQLITE_STATIC);
+                sqlite3_bind_text(ins, 2, cands[i].title_id, -1, SQLITE_STATIC);
+                sqlite3_bind_text(ins, 3, cands[i].title_name, -1, SQLITE_STATIC);
+                (void)sqlite3_step(ins);
+            }
+            sqlite3_finalize(ins);
+            klog_printf("[PS5-HLTB] No HLTB match for %s ('%s'), marked checked\n",
+                        cands[i].title_id, cands[i].title_name);
         }
     }
 
@@ -2849,7 +2929,12 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path) {
 
     g_sync_active = 0;
     g_sync_step = 0;
-    snprintf(g_sync_msg, sizeof g_sync_msg, "Library auto-match complete");
+    if(matched_count > 0) {
+        snprintf(g_sync_msg, sizeof g_sync_msg, "Matched %zu game(s) with HowLongToBeat", matched_count);
+        ps5_notify("PS5-HLTB: Matched %zu game(s) on HowLongToBeat", matched_count);
+    } else {
+        snprintf(g_sync_msg, sizeof g_sync_msg, "Library auto-match complete");
+    }
     return 0;
 }
 
@@ -2887,6 +2972,71 @@ static int is_auto_sync_enabled(const char *hltb_db_path) {
     return enabled;
 }
 
+static int check_account_session(const char *hltb_db_path) {
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    char cookie[2048] = {0};
+    int status = 0;
+    buffer_t resp = {0};
+    http_ctx_t hctx;
+
+    if(sqlite3_open_v2(hltb_db_path, &db,
+                       SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX,
+                       NULL) != SQLITE_OK) {
+        if(db) sqlite3_close(db);
+        return 0;
+    }
+    sqlite3_busy_timeout(db, 3000);
+
+    /* Get session cookie for active account */
+    if(sqlite3_prepare_v2(db,
+                          "SELECT session_cookie FROM hltb_accounts WHERE auto_sync = 1 AND session_cookie != '' AND hltb_user_id > 0 "
+                          "UNION "
+                          "SELECT session_cookie FROM hltb_config WHERE id = 1 AND auto_sync = 1 AND session_cookie != '' AND hltb_user_id > 0 "
+                          "LIMIT 1",
+                          -1, &stmt, NULL) == SQLITE_OK &&
+       sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *ck = (const char *)sqlite3_column_text(stmt, 0);
+        if(ck && ck[0]) {
+            snprintf(cookie, sizeof cookie, "%s", ck);
+        }
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    if(!cookie[0]) {
+        return 0;
+    }
+
+    if(http_ctx_init(&hctx, DEFAULT_USER_AGENT) != 0) {
+        return 0;
+    }
+
+    /* Fast check: GET https://howlongtobeat.com/api/user with cookie */
+    int rc = http_ctx_request(&hctx, 0, "https://howlongtobeat.com/api/user", NULL,
+                              cookie, NULL, &status, &resp, NULL, 0);
+    http_ctx_fini(&hctx);
+
+    if(rc == 0) {
+        if(status == 401 || status == 403) {
+            free(resp.data);
+            return -1; /* Session expired */
+        }
+        if(resp.data) {
+            long long uid = 0;
+            if(json_extract_int64(resp.data, "user_id", &uid) != 0 || uid <= 0) {
+                free(resp.data);
+                return -1; /* Invalid session response */
+            }
+            free(resp.data);
+        }
+    } else {
+        free(resp.data);
+    }
+
+    return 0;
+}
+
 static void *auto_sync_worker(void *arg) {
     auto_sync_args_t *args = (auto_sync_args_t *)arg;
     char err[256];
@@ -2897,6 +3047,7 @@ static void *auto_sync_worker(void *arg) {
     sleep(2);
 
     for(;;) {
+        /* 1. Sync selected games if auto-sync is enabled */
         if(is_auto_sync_enabled(args->hltb_db_path)) {
             err[0] = '\0';
             int rc = hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
@@ -2905,10 +3056,26 @@ static void *auto_sync_worker(void *arg) {
                 if(synced > 0) {
                     ps5_notify("PS5-HLTB: Synced %d game(s) to HowLongToBeat", synced);
                 } else if(first_run) {
-                    ps5_notify("PS5-HLTB: HowLongToBeat is up to date");
+                    if(check_account_session(args->hltb_db_path) == -1) {
+                        hltb_notify_session_expired();
+                    } else {
+                        ps5_notify("PS5-HLTB: HowLongToBeat is up to date");
+                    }
+                }
+            } else {
+                if(strstr(err, "session expired") || strstr(err, "401") || strstr(err, "403") || strstr(err, "Unauthorized")) {
+                    hltb_notify_session_expired();
                 }
             }
         }
+
+        /* 2. Check library for unmatched games:
+         *    - On first run ever: matches all games so progress bars work
+         *    - On later runs: checks if any games are unmatched (returns in 1ms if none)
+         *    - If new games were installed: matches only the new games
+         */
+        (void)hltb_auto_match_library(args->app_db_path, args->hltb_db_path, 0);
+
         first_run = 0;
         sleep(180);
     }

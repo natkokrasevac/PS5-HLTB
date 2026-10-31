@@ -979,7 +979,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     platforms: { PS5: true, PS4: true, HOMEBREW: true },
     sort: 'played',
     query: '', maxSec: 0, view: 'cards', tfmt: 'dhm',
-    hltb: { ps5User: '', hltbUserId: 0, hltbUsername: '', autoSync: 1, lastSync: '', map: {} }
+    hltb: { ps5User: '', hltbUserId: 0, hltbUsername: '', autoSync: 1, lastSync: '', sessionExpired: 0, map: {} }
   };
   try {
     var savedPlat = localStorage.getItem('pt-platforms');
@@ -1579,6 +1579,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     state.hltb.ps5User = h.ps5User || (state.users[0] || '');
     state.hltb.accounts = h.accounts || {};
     state.hltb.loggedIn = h.loggedIn ? 1 : 0;
+    state.hltb.sessionExpired = h.sessionExpired ? 1 : 0;
     state.hltb.hltbUserId = h.hltbUserId || 0;
     state.hltb.hltbUsername = h.hltbUsername || '';
     state.hltb.autoSync = h.autoSync !== undefined ? h.autoSync : 1;
@@ -1600,11 +1601,15 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     var uId = activeHltbUserId();
     var acct = (state.hltb.accounts && state.hltb.accounts[uId]) ? state.hltb.accounts[uId] : {
       loggedIn: state.hltb.loggedIn ? 1 : 0,
+      sessionExpired: state.hltb.sessionExpired ? 1 : 0,
       hltbUserId: state.hltb.hltbUserId || 0,
       hltbUsername: state.hltb.hltbUsername || '',
       autoSync: state.hltb.autoSync !== undefined ? state.hltb.autoSync : 1,
       lastSync: state.hltb.lastSync || ''
     };
+    if (acct.sessionExpired === undefined) {
+      acct.sessionExpired = state.hltb.sessionExpired ? 1 : 0;
+    }
     return acct;
   }
 
@@ -1643,17 +1648,30 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   var hcaptchaWidgetId = null;
   var hcaptchaLoading = false;
   function ensureHltbCaptcha() {
-    if (activeHltbAccount().loggedIn) { return; }
+    var acct = activeHltbAccount();
+    if (acct.loggedIn && !acct.sessionExpired) { return; }
     var box = $('hltbCaptchaBox');
     if (!box) { return; }
-    if (window.hcaptcha && hcaptchaWidgetId === null) {
-      try {
-        clear(box);
-        hcaptchaWidgetId = window.hcaptcha.render(box, {
-          sitekey: '8b78699e-e0b2-4e34-8f10-c6338ba1b6dd',
-          theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
-        });
-      } catch (e) {}
+    if (window.hcaptcha) {
+      if (hcaptchaWidgetId === null || !box.hasChildNodes()) {
+        try {
+          clear(box);
+          hcaptchaWidgetId = window.hcaptcha.render(box, {
+            sitekey: '8b78699e-e0b2-4e34-8f10-c6338ba1b6dd',
+            theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+          });
+        } catch (e) {
+          try {
+            if (hcaptchaWidgetId !== null) {
+              window.hcaptcha.reset(hcaptchaWidgetId);
+            }
+          } catch (e2) {}
+        }
+      } else {
+        try {
+          window.hcaptcha.reset(hcaptchaWidgetId);
+        } catch (e) {}
+      }
       return;
     }
     if (!hcaptchaLoading && !window.hcaptcha) {
@@ -2187,7 +2205,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 
     var syncNowBtn = $('hltbSyncNow');
     var syncAllBtn = $('hltbSyncAll');
-    if (acct.loggedIn) {
+    if (acct.loggedIn && !acct.sessionExpired) {
       syncNowBtn.disabled = false;
       syncNowBtn.title = 'Sync selected games to HLTB for ' + userLabel(uIdx);
       syncAllBtn.disabled = false;
@@ -2199,12 +2217,17 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       syncAllBtn.title = 'Sign in to HowLongToBeat first for ' + userLabel(uIdx);
     }
 
-    if (acct.loggedIn) {
+    if (acct.loggedIn && !acct.sessionExpired) {
       $('hltbAcctStatus').textContent = 'Profile ' + userLabel(uIdx) + ' logged in as ' +
         (acct.hltbUsername || ('User #' + acct.hltbUserId)) +
         ' — PS5 auto-syncs your selected games on startup.';
       $('hltbLoggedOutBox').style.display = 'none';
       $('hltbLoggedInBox').style.display = 'block';
+    } else if (acct.sessionExpired) {
+      $('hltbAcctStatus').textContent = '⚠️ Profile ' + userLabel(uIdx) + ' session has expired! Please sign in again below.';
+      $('hltbLoggedOutBox').style.display = 'block';
+      $('hltbLoggedInBox').style.display = 'none';
+      if ($('vHltb').style.display !== 'none') { ensureHltbCaptcha(); }
     } else {
       $('hltbAcctStatus').textContent = 'Profile ' + userLabel(uIdx) + ' is not logged in to HLTB — sign in below or scan Phone QR.';
       $('hltbLoggedOutBox').style.display = 'block';

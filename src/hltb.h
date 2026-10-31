@@ -73,7 +73,7 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
 /* Automatically discovers non-homebrew games from app_db_path and looks up
  * their completion times from HowLongToBeat, storing them into hltb_db_path
  * so that expected playtimes and progress bars are available for all games. */
-int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path);
+int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path, int force_all);
 
 /* Starts a detached background thread on the PS5 that immediately runs
  * hltb_sync_selected() on startup (if logged in and auto_sync is enabled)
@@ -83,5 +83,8 @@ void hltb_start_auto_sync_thread(const char *app_db_path,
 
 /* Sends a native PS5 system notification (debug popup) directly to the TV screen */
 void ps5_notify(const char *fmt, ...);
+
+/* Triggers a PS5 on-screen notification if the HLTB session has expired */
+void hltb_notify_session_expired(void);
 
 #endif
