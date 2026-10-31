@@ -81,4 +81,7 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path);
 void hltb_start_auto_sync_thread(const char *app_db_path,
                                  const char *hltb_db_path);
 
+/* Sends a native PS5 system notification (debug popup) directly to the TV screen */
+void ps5_notify(const char *fmt, ...);
+
 #endif

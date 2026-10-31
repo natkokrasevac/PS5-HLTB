@@ -349,6 +349,11 @@ static void handle_hltb_sync(int fd, const server_request_t *req,
         send_json_error(fd, 400, error[0] ? error : "HLTB sync failed.");
         return;
     }
+    if(synced > 0) {
+        ps5_notify("PS5-HLTB: Synced %d game(s) to HowLongToBeat", synced);
+    } else {
+        ps5_notify("PS5-HLTB: Selected games are up to date");
+    }
     snprintf(resp, sizeof resp, "{\"ok\":true,\"synced\":%d}", synced);
     server_send(fd, 200, "application/json; charset=utf-8", resp, strlen(resp), 0);
 }
@@ -583,6 +588,8 @@ int main(void) {
 
     klog_printf("[PS5-HLTB] HTTP server listening on port %d (fd=%d)\n",
                 ctx.port, listen_fd);
+
+    ps5_notify("PS5-HLTB %s\nReady on port %d", PAYLOAD_VERSION, ctx.port);
 
     /* Automatically sync selected HLTB games on PS5 ELF startup and in background */
     hltb_start_auto_sync_thread(ctx.database_path, ctx.hltb_database_path);

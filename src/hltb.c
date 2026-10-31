@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,6 +96,27 @@ int sceHttp2ReadData(int reqId, void *data, size_t size);
 static pthread_mutex_t g_hltb_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int g_net_inited = 0;
 static char g_last_http_error[192] = {0};
+
+/* ---- PS5 Native System Notification (Debug Popup) ----------------------- */
+
+typedef struct notify_request {
+    char useless1[45];
+    char message[3075];
+} notify_request_t;
+
+int sceKernelSendNotificationRequest(int, notify_request_t*, size_t, int);
+
+void ps5_notify(const char *fmt, ...) {
+    notify_request_t req;
+    va_list args;
+
+    memset(&req, 0, sizeof req);
+    va_start(args, fmt);
+    vsnprintf(req.message, sizeof req.message, fmt, args);
+    va_end(args);
+
+    (void)sceKernelSendNotificationRequest(0, &req, sizeof req, 0);
+}
 
 /* Live sync status exposed to web frontend */
 static volatile int g_sync_active = 0;
@@ -2515,6 +2537,7 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
         }
 
         if(it->hltb_game_id <= 0) {
+            snprintf(g_sync_msg, sizeof g_sync_msg, "Matching '%s' on HowLongToBeat...", search_name);
             if(hltb_api_search_game(&hctx, search_name, &it->hltb_game_id,
                                     it->hltb_title, sizeof it->hltb_title,
                                     &it->comp_main, &it->comp_plus,
@@ -2537,6 +2560,9 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
         if(!it->hltb_title[0]) {
             snprintf(it->hltb_title, sizeof it->hltb_title, "%s", search_name);
         }
+
+        snprintf(g_sync_msg, sizeof g_sync_msg, "Syncing '%s' to HowLongToBeat...",
+                 it->hltb_title[0] ? it->hltb_title : search_name);
 
         hltb_api_find_user_submission(&hctx, acct->session_cookie, acct->hltb_user_id,
                                       it->hltb_game_id, &new_sub_id, &prev_sec,
@@ -2865,34 +2891,26 @@ static void *auto_sync_worker(void *arg) {
     auto_sync_args_t *args = (auto_sync_args_t *)arg;
     char err[256];
     int synced = 0;
+    int first_run = 1;
 
     /* Give the network stack and HTTP server a moment to settle on startup */
     sleep(2);
 
-    /* 1. Fast-path: Sync selected games IMMEDIATELY on launch if enabled */
-    if(is_auto_sync_enabled(args->hltb_db_path)) {
-        err[0] = '\0';
-        (void)hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
-                                 &synced, err, sizeof err);
-    }
-
-    /* 2. Discover and fetch HLTB times for all unmatched library games in background */
-    (void)hltb_auto_match_library(args->app_db_path, args->hltb_db_path);
-
-    /* 3. If any newly matched games were marked selected, sync them now */
-    if(is_auto_sync_enabled(args->hltb_db_path)) {
-        err[0] = '\0';
-        (void)hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
-                                 &synced, err, sizeof err);
-    }
-
     for(;;) {
-        sleep(180);
         if(is_auto_sync_enabled(args->hltb_db_path)) {
             err[0] = '\0';
-            (void)hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
-                                     &synced, err, sizeof err);
+            int rc = hltb_sync_selected(args->app_db_path, args->hltb_db_path, 0,
+                                        &synced, err, sizeof err);
+            if(rc == 0) {
+                if(synced > 0) {
+                    ps5_notify("PS5-HLTB: Synced %d game(s) to HowLongToBeat", synced);
+                } else if(first_run) {
+                    ps5_notify("PS5-HLTB: HowLongToBeat is up to date");
+                }
+            }
         }
+        first_run = 0;
+        sleep(180);
     }
 
     free(args);
