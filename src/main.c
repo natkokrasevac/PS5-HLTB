@@ -282,11 +282,11 @@ static void handle_hltb_logout(int fd, const server_request_t *req,
     server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true}", 11, 0);
 }
 
-/* POST /api/hltb/select?user=<userId>&id=<TITLEID>&selected=<0|1>[&hltb_id=<id>][&list=<playing|backlog|completed>] */
+/* POST /api/hltb/select?user=<userId>&id=<TITLEID>[&selected=<0|1>][&hltb_id=<id>][&list=<playing|backlog|completed>] */
 static void handle_hltb_select(int fd, const server_request_t *req,
                                const context_t *ctx) {
     char user[24] = {0};
-    char id[16] = {0};
+    char id[8192] = {0};
     char title[256] = {0};
     char sel_str[8] = {0};
     char gid_str[24] = {0};
@@ -376,6 +376,29 @@ static void handle_hltb_match_all(int fd, const server_request_t *req,
     server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true}", 11, 0);
 }
 
+/* GET /api/hltb/search?q=<query> */
+static void handle_hltb_search(int fd, const server_request_t *req,
+                               const context_t *ctx) {
+    char query[256] = {0};
+    char error[256] = {0};
+    size_t length = 0;
+
+    (void)ctx;
+    if(param_get(req, "q", query, sizeof query) != 0 || !query[0]) {
+        send_json_error(fd, 400, "Missing search query parameter 'q'.");
+        return;
+    }
+
+    char *json = hltb_search_suggestions_json(query, &length, error, sizeof error);
+    if(!json) {
+        send_json_error(fd, 500, error[0] ? error : "Search failed.");
+        return;
+    }
+
+    server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
+    free(json);
+}
+
 static void handle_request(int fd, const server_request_t *req, void *user) {
     const context_t *ctx = (const context_t *)user;
     const char *path = req->path;
@@ -406,6 +429,10 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
     }
     if(strcmp(path, "/api/hltb/match-all") == 0) {
         handle_hltb_match_all(fd, req, ctx);
+        return;
+    }
+    if(strcmp(path, "/api/hltb/search") == 0) {
+        handle_hltb_search(fd, req, ctx);
         return;
     }
     if(strcmp(req->method, "GET") != 0) {

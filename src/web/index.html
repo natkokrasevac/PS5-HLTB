@@ -124,9 +124,9 @@ body {
   background-attachment: fixed;
 }
 button, select, input { font-family: inherit; }
-.page { display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; width: 100%; max-width: 92rem; margin: 0 auto; padding: .936rem .936rem 1.56rem; }
+.page { display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; width: 100%; max-width: 92rem; margin: 0 auto; padding: .6rem .85rem .85rem; }
 
-.topline { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .6rem; margin-bottom: .624rem; border-bottom: 1px solid var(--line); }
+.topline { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .6rem; margin-bottom: .45rem; border-bottom: 1px solid var(--line); }
 .topline .tabs { display: flex; flex-wrap: wrap; margin-bottom: 0; border-bottom: none; }
 .topline .tright { position: relative; z-index: 2; display: flex; align-items: center; margin-bottom: .22rem; }
 .pills { display: flex; flex-wrap: wrap; align-items: center; }
@@ -139,15 +139,15 @@ button.pill svg { width: .95rem; height: .95rem; margin-right: .38rem; color: va
 .addr { color: var(--text); font-family: "SFMono-Regular", Consolas, monospace; }
 
 /* sidebar visible access & qr */
-.side-access { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex: 1 1 auto; margin-top: .65rem; padding: .85rem .75rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); cursor: pointer; transition: background .12s, border-color .12s; min-height: 13.5rem; }
+.side-access { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex: 1 1 auto; margin-top: .35rem; padding: .45rem .6rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); cursor: pointer; transition: background .12s, border-color .12s; min-height: auto; }
 .side-access:hover { background: var(--surface-hover); border-color: var(--line-strong); }
-.side-qr-box { width: clamp(9.5rem, 22vw, 13rem); height: clamp(9.5rem, 22vw, 13rem); max-width: 90%; aspect-ratio: 1; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: .45rem; margin: .45rem 0 .5rem; border-radius: 8px; box-shadow: 0 3px 12px rgba(0,0,0,.38); overflow: hidden; }
+.side-qr-box { width: clamp(6.2rem, 11vw, 7.5rem); height: clamp(6.2rem, 11vw, 7.5rem); aspect-ratio: 1; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: .32rem; margin: .22rem 0 .28rem; border-radius: 6px; box-shadow: 0 3px 12px rgba(0,0,0,.38); overflow: hidden; }
 .side-qr-box svg { width: 100%; height: 100%; display: block; }
 .side-access-info { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
-.side-access-tag { display: inline-flex; align-items: center; gap: .38rem; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.side-access-dot { display: inline-block; width: .46rem; height: .46rem; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
-.side-access-addr { font-family: "SFMono-Regular", Consolas, monospace; font-size: .98rem; font-weight: 700; color: var(--text); word-break: break-all; user-select: all; }
-.side-access-sub { margin-top: .2rem; font-size: .74rem; color: var(--muted); line-height: 1.25; }
+.side-access-tag { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.side-access-dot { display: inline-block; width: .42rem; height: .42rem; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.side-access-addr { font-family: "SFMono-Regular", Consolas, monospace; font-size: .88rem; font-weight: 700; color: var(--text); word-break: break-all; user-select: all; }
+.side-access-sub { margin-top: .1rem; font-size: .69rem; color: var(--muted); line-height: 1.25; }
 
 /* time format segmented control */
 .seg { display: inline-flex; margin-right: .624rem; padding: .18rem; background: var(--seg-bg); border: 1px solid var(--seg-line); border-radius: 999px; }
@@ -169,26 +169,26 @@ button.pill svg { width: .95rem; height: .95rem; margin-right: .38rem; color: va
 .eyebrow { margin: 0 0 .273rem; text-align: left; color: var(--muted); font-size: .85rem; font-weight: 600; }
 
 /* ---------- overview ---------- */
-.overview { margin-bottom: .78rem; }
-.total { padding: .858rem 1.014rem .936rem; margin-bottom: .624rem; background: var(--hero); }
+.overview { margin-bottom: .5rem; }
+.total { padding: .6rem .85rem .65rem; margin-bottom: .45rem; background: var(--hero); }
 .head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; margin: 0 .936rem .156rem 0; }
 .slot { margin: 0; }
-.uchart { display: flex; align-items: center; min-height: 6.4rem; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
-.uchart svg { flex: 0 0 auto; width: 5.6rem; height: 5.6rem; margin-right: 1rem; transform: rotate(-90deg); }
+.uchart { display: flex; align-items: center; min-height: 5.2rem; padding: .35rem .65rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+.uchart svg { flex: 0 0 auto; width: 4.8rem; height: 4.8rem; margin-right: .85rem; transform: rotate(-90deg); }
 .uchart .seg { fill: none; stroke-width: 9; transition: stroke-dasharray .9s cubic-bezier(.2,.8,.2,1), stroke-width .15s; cursor: default; }
 .uchart .seg:hover { stroke-width: 12; }
 .uchart .track0 { fill: none; stroke: var(--line); stroke-width: 9; }
 .ulegend { flex: 1 1 auto; min-width: 0; }
-.ulegend .ttl { margin: 0 0 .3rem; color: var(--muted); font-size: .8rem; font-weight: 600; }
-.urow { display: flex; align-items: center; margin: .18rem 0; font-size: .82rem; }
-.urow i { flex: 0 0 auto; width: .6rem; height: .6rem; margin-right: .45rem; border-radius: 50%; }
+.ulegend .ttl { margin: 0 0 .2rem; color: var(--muted); font-size: .78rem; font-weight: 600; }
+.urow { display: flex; align-items: center; margin: .12rem 0; font-size: .8rem; }
+.urow i { flex: 0 0 auto; width: .55rem; height: .55rem; margin-right: .4rem; border-radius: 50%; }
 .urow .un { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.urow .ut { flex: 0 0 auto; margin-left: .6rem; color: var(--muted); white-space: nowrap; }
+.urow .ut { flex: 0 0 auto; margin-left: .5rem; color: var(--muted); white-space: nowrap; }
 .urow .up { flex: 0 0 auto; width: 2.6rem; margin-left: .5rem; text-align: right; font-weight: 700; }
-.totalbox { margin: 0 0 .156rem; padding: .35rem .7rem; text-align: left; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+.totalbox { margin: 0 0 .156rem; padding: .25rem .6rem; text-align: left; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
 .totalbox .eyebrow { margin-bottom: .1rem; text-align: left; }
-.mark { width: 2.8rem; height: 2.8rem; margin-right: .624rem; border-radius: var(--r); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000000; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.mark { width: 2.5rem; height: 2.5rem; margin-right: .55rem; border-radius: var(--r); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000000; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
 .brand-app-icon { width: 100%; height: 100%; object-fit: cover; display: block; }
 .brand-logo { width: 2.1rem; height: auto; max-height: 1.4rem; object-fit: contain; filter: brightness(0) invert(1); display: block; }
 .chip-logo { height: 1.05rem; width: auto; vertical-align: middle; margin: 0; filter: var(--logo-filter); transition: filter .12s; display: inline-block; pointer-events: none; }
@@ -196,33 +196,33 @@ button.pill svg { width: .95rem; height: .95rem; margin-right: .38rem; color: va
 .chip[data-p="PS5"], .chip[data-p="PS4"] { display: inline-flex; align-items: center; justify-content: center; min-width: 4.8rem; }
 .plat-av-img { width: 85%; height: auto; max-height: 80%; object-fit: contain; filter: brightness(0) invert(1); display: block; }
 .modal-title-logo { height: 1.15rem; width: auto; vertical-align: -2px; margin-right: .35rem; filter: var(--logo-filter); display: inline-block; }
-h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
-.ver { margin-left: .273rem; color: var(--muted); font-size: .8rem; font-weight: 600; vertical-align: middle; }
-.big { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
-.sub { margin: .078rem 0 0; color: var(--muted); font-size: .85rem; }
+h1 { margin: 0; font-size: 1.35rem; font-weight: 600; }
+.ver { margin-left: .273rem; color: var(--muted); font-size: .78rem; font-weight: 600; vertical-align: middle; }
+.big { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+.sub { margin: .06rem 0 0; color: var(--muted); font-size: .8rem; }
 .tiles { display: flex; flex-wrap: wrap; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
-.tile { flex: 1 1 6rem; padding: .4rem .5rem; text-align: center; border-left: 1px solid var(--line); }
+.tile { flex: 1 1 6rem; padding: .26rem .45rem; text-align: center; border-left: 1px solid var(--line); }
 .tile:first-child { border-left: 0; }
 .tile.sm { flex: 0 1 5.2rem; }
 .tile.wide { flex: 1 1 auto; white-space: nowrap; }
-.tile b { display: block; font-size: 1.15rem; line-height: 1.25; }
-.tile span { color: var(--muted); font-size: .74rem; font-weight: 600; }
+.tile b { display: block; font-size: 1.05rem; line-height: 1.2; }
+.tile span { color: var(--muted); font-size: .7rem; font-weight: 600; }
 .hero { display: flex; flex-wrap: wrap; }
-.hmain { display: flex; flex-direction: column; flex: 1 1 26rem; min-width: 0; margin-right: .936rem; gap: .55rem; }
-.hside { display: flex; flex-direction: column; flex: 0 1 28rem; min-width: 15rem; padding: .6rem .7rem .65rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
-.hside h2 { margin: 0 0 .4rem; color: var(--muted); font-size: .8rem; font-weight: 600; }
-.hside h2.gap { margin-top: .6rem; }
-.hside .item { margin-bottom: .2rem; padding: .25rem .45rem; }
-.hside .avatar { width: 1.8rem; height: 1.8rem; font-size: .8rem; }
+.hmain { display: flex; flex-direction: column; flex: 1 1 26rem; min-width: 0; margin-right: .936rem; gap: .45rem; }
+.hside { display: flex; flex-direction: column; flex: 0 1 28rem; min-width: 15rem; padding: .45rem .6rem .5rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+.hside h2 { margin: 0 0 .22rem; color: var(--muted); font-size: .76rem; font-weight: 600; }
+.hside h2.gap { margin-top: .32rem; }
+.hside .item { margin-bottom: .15rem; padding: .18rem .4rem; }
+.hside .avatar { width: 1.6rem; height: 1.6rem; font-size: .72rem; }
 .cols .item { padding: .5rem .7rem; }
 .cols .thumb { width: 2.8rem; height: 2.8rem; }
 .cols .iname { font-size: 1rem; }
 .cols .isub { font-size: .78rem; font-family: "SFMono-Regular", Consolas, monospace; letter-spacing: .03em; }
 .cols .ival { font-size: 1rem; }
-#pTop .item, #grid.list .item, #pHltb .item { padding: .5rem .7rem; }
-#pTop .iright, #grid.list .iright, #pHltb .iright { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; margin-left: .624rem; }
-#pTop .ival, #grid.list .ival, #pHltb .ival { box-sizing: border-box; width: 15rem; margin: 0; padding: .18rem .65rem; text-align: center; color: var(--green); font-size: .85rem; line-height: 1.35; background: var(--played-bg); border: 1px solid var(--played-line); border-radius: 6px; }
-#pTop .ilast, #grid.list .ilast, #pHltb .ilast { box-sizing: border-box; width: 15rem; margin-top: .3rem; padding: .12rem .65rem; text-align: center; color: var(--muted); font-size: .74rem; font-weight: 600; line-height: 1.35; background: var(--inset); border: 1px solid var(--line); border-radius: 6px; }
+#grid.list .item, #pHltb .item { padding: .5rem .7rem; }
+#grid.list .iright, #pHltb .iright { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; margin-left: .624rem; }
+#grid.list .ival, #pHltb .ival { box-sizing: border-box; width: 15rem; margin: 0; padding: .18rem .65rem; text-align: center; color: var(--green); font-size: .85rem; line-height: 1.35; background: var(--played-bg); border: 1px solid var(--played-line); border-radius: 6px; }
+#grid.list .ilast, #pHltb .ilast { box-sizing: border-box; width: 15rem; margin-top: .3rem; padding: .12rem .65rem; text-align: center; color: var(--muted); font-size: .74rem; font-weight: 600; line-height: 1.35; background: var(--inset); border: 1px solid var(--line); border-radius: 6px; }
 #grid.list .thumb { width: 2.8rem; height: 2.8rem; }
 #grid.list .rank { width: 2.6rem; margin-right: .4rem; font-size: .95rem; font-variant-numeric: tabular-nums; }
 #grid.list .rank.top { color: var(--muted); }
@@ -236,7 +236,7 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
 .mstamps .idchip { margin: 0 .4rem .2rem 0; }
 .idchip.ps4 b { color: var(--amber); }
 .idchip b { margin-right: .3rem; padding-right: .3rem; color: var(--accent); font-weight: 800; border-right: 1px solid var(--line-strong); }
-#pUsers .ival, #pPlat .ival { box-sizing: border-box; flex: 0 0 auto; width: 12.5rem; white-space: nowrap; padding: .2rem .5rem; text-align: center; color: var(--green); font-size: .8rem; line-height: 1.35; background: var(--played-bg); border: 1px solid var(--played-line); border-radius: 6px; }
+#pUsers .ival, #pPlat .ival { box-sizing: border-box; flex: 0 0 auto; width: 11.5rem; white-space: nowrap; padding: .15rem .45rem; text-align: center; color: var(--green); font-size: .76rem; line-height: 1.3; background: var(--played-bg); border: 1px solid var(--played-line); border-radius: 6px; }
 #pUsers .ival.dim, #pPlat .ival.dim { color: var(--red); background: var(--never-bg); border-color: var(--never-line); }
 .gstamp { display: inline-flex; white-space: nowrap; align-items: center; height: 1.4rem; box-sizing: border-box; margin-top: .25rem; padding: 0 .55rem; font-size: .72rem; font-weight: 500; line-height: 1; color: var(--accent); background: var(--badge-bg); border: 1px solid var(--accent); border-radius: 6px; }
 .gstamp.amber { color: var(--amber); border-color: var(--amber); }
@@ -394,18 +394,573 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 .hltb-row { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .5rem 0; }
 .hltb-sel, .hltb-inp, .hltb-txt { height: 2.5rem; padding: 0 .65rem; color: var(--text); font-size: .9rem; font-weight: 600; background: var(--solid); border: 1px solid var(--line-strong); border-radius: var(--rc); }
 .hltb-inp { width: 9rem; font-family: "SFMono-Regular", Consolas, monospace; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* HLTB Connected Account Box */
+.hltb-acct-box { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .6rem; padding: .5rem .75rem; border-radius: var(--rc); background: var(--solid); border: 1px solid var(--line-strong); }
+.hltb-acct-info { display: flex; align-items: center; gap: .65rem; min-width: 0; flex-wrap: wrap; }
+.hltb-acct-badge { display: inline-flex; align-items: center; gap: .45rem; padding: .2rem .6rem; background: var(--fill); border: 1px solid var(--line); border-radius: 6px; font-family: "SFMono-Regular", Consolas, monospace; font-size: .86rem; font-weight: 700; color: var(--text); }
+.hltb-status-dot { display: inline-block; width: .48rem; height: .48rem; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
+
+
+/* ---------- HLTB Match Status Card ---------- */
+.hltb-match-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  border-radius: var(--rc);
+  margin: .65rem 0 .5rem;
+  background: var(--solid);
+  border: 1px solid var(--line);
+}
+.hltb-match-card.matched {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.38);
+}
+.hltb-match-card.unmatched {
+  background: rgba(245, 158, 11, 0.09);
+  border-color: rgba(245, 158, 11, 0.32);
+}
+.hltb-match-left {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+.hltb-match-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .22rem .55rem;
+  font-size: .72rem;
+  font-weight: 800;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.hltb-match-card.matched .hltb-match-badge {
+  background: #059669;
+  color: #ffffff;
+}
+.hltb-match-card.unmatched .hltb-match-badge {
+  background: #d97706;
+  color: #ffffff;
+}
+.hltb-match-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: .1rem;
+}
+.hltb-match-title {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hltb-match-id {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: .78rem;
+  color: var(--accent);
+  font-weight: 700;
+  margin-left: .35rem;
+}
+.hltb-match-sub {
+  font-size: .75rem;
+  color: var(--muted);
+}
+.hltb-match-actions {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+.hltb-match-btn {
+  padding: .25rem .65rem !important;
+  font-size: .78rem !important;
+  font-weight: 700 !important;
+  height: 2.1rem !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+.hltb-link-ext {
+  color: var(--accent);
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: .25rem .55rem;
+  border-radius: var(--rc);
+  background: var(--fill);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  height: 2.1rem;
+  box-sizing: border-box;
+}
+.hltb-link-ext:hover {
+  background: var(--fill-hover);
+  color: var(--text);
+  border-color: var(--accent);
+}
+.hltb-manual-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.hltb-manual-label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* ---------- HLTB List Table Head & Checkbox ---------- */
+.hltb-table-head {
+  display: flex;
+  align-items: center;
+  padding: .45rem .85rem;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+  margin-top: .6rem;
+  user-select: none;
+  box-sizing: border-box;
+}
+.hltb-head-sync {
+  width: 3.8rem;
+  text-align: center;
+  flex: 0 0 3.8rem;
+  margin-right: .55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hltb-head-game {
+  flex: 0 0 16rem;
+  margin-left: 5.7rem;
+}
+.hltb-head-prog {
+  flex: 1 1 auto;
+  min-width: 12rem;
+  text-align: center;
+  margin: 0 .75rem;
+}
+.hltb-head-list {
+  flex: 0 0 16.5rem;
+  text-align: center;
+  margin: 0 .65rem;
+}
+.hltb-head-status {
+  flex: 0 0 13.5rem;
+  text-align: center;
+  margin-left: .5rem;
+}
+.hltb-check-wrap {
+  width: 3.8rem;
+  flex: 0 0 3.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: .55rem;
+}
+.hltb-check-btn {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--inset);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  color: transparent;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: all .15s ease;
+}
+.hltb-check-btn:hover {
+  border-color: var(--accent);
+  background: var(--fill-hover);
+}
+.hltb-check-btn.on {
+  background: var(--played-bg);
+  border-color: var(--green);
+  color: var(--green);
+}
+.hltb-check-btn.on:hover {
+  background: rgba(16, 185, 129, 0.22);
+}
+.hltb-check-btn.sm {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  border-radius: 6px;
+}
+.hltb-check-btn.partial,
+.hltb-check-btn.sm.partial {
+  background: var(--played-bg);
+  border-color: var(--green);
+  color: var(--green);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.hltb-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .85rem 0 .4rem;
+}
+.hltb-section-head h2 {
+  margin: 0;
+}
+.hltb-filter-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+.hltb-sel.sm {
+  height: 2.25rem;
+  padding: 0 .65rem;
+  font-size: .84rem;
+  font-weight: 600;
+  border-radius: var(--rc);
+}
+.hltb-status-col {
+  flex: 0 0 16.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 .65rem;
+  transition: opacity .15s ease;
+}
+.hltb-status-col.dim {
+  opacity: .5;
+}
+.hltb-status-col.dim:hover {
+  opacity: .85;
+}
+.hltb-status-col .hltb-list-group {
+  margin: 0 !important;
+}
+#pHltb .item {
+  padding: .75rem .85rem;
+  min-height: 5.8rem;
+  align-items: center;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+#pHltb .thumb {
+  width: 4.85rem;
+  height: 4.85rem;
+  flex: 0 0 4.85rem;
+  border-radius: 10px;
+  margin-right: .85rem;
+}
+#pHltb .imid {
+  flex: 0 0 16rem;
+  min-width: 14rem;
+}
+#pHltb .iname {
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: .22rem;
+}
+.hltb-prog-col {
+  flex: 1 1 auto;
+  min-width: 12rem;
+  margin: 0 .75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .25rem;
+}
+.hltb-prog-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.2;
+}
+.hltb-prog-top b {
+  color: var(--text);
+}
+.hltb-prog-pct {
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.hltb-prog-pct.done {
+  color: var(--green);
+}
+.hltb-prog-track {
+  width: 100%;
+  height: 8px;
+  background: var(--inset);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.hltb-prog-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  transition: width .3s ease-out;
+  min-width: 0;
+}
+.hltb-prog-fill.done {
+  background: linear-gradient(90deg, #059669, #34d399);
+}
+.hltb-prog-fill.over {
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+}
+.hltb-prog-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.2;
+}
+.hltb-prog-col.dim {
+  opacity: .6;
+}
+.hltb-prog-unmatched {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .76rem;
+  color: var(--muted);
+  font-style: italic;
+  padding: .35rem 0;
+}
+.hltb-prog-unmatched-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: .5;
+}
+#pHltb .hltb-game-stamps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .28rem;
+  margin-top: .3rem;
+}
+#pHltb .idchip {
+  margin: 0 !important;
+  width: 7.8rem;
+  min-width: 7.8rem;
+  max-width: 7.8rem;
+  height: 1.5rem;
+  padding: 0 .45rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .78rem;
+  border-radius: 6px;
+  line-height: 1;
+}
+#pHltb .gstamp.hltb-tag {
+  margin: 0 !important;
+  width: 7.8rem;
+  min-width: 7.8rem;
+  max-width: 7.8rem;
+  height: 1.5rem;
+  padding: 0 .45rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .75rem;
+  font-weight: 700;
+  border-radius: 6px;
+  line-height: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pHltb .iright {
+  flex: 0 0 13.5rem !important;
+  width: 13.5rem !important;
+  min-width: 13.5rem;
+  max-width: 13.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  margin-left: .5rem !important;
+  box-sizing: border-box;
+}
+#pHltb .ival, #pHltb .ilast {
+  width: 100% !important;
+  max-width: 13.5rem;
+  box-sizing: border-box;
+  margin: 0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pHltb .ilast {
+  margin-top: .3rem;
+}
+.gstamp.hltb-tag {
+  font-size: .72rem;
+  font-weight: 700;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  padding: 0 .45rem;
+}
 .hltb-txt { flex: 1 1 11rem; min-width: 9rem; }
 .hltb-selbtn { flex: 0 0 auto; padding: .35rem .7rem; cursor: pointer; font: inherit; font-size: .8rem; font-weight: 700; border-radius: var(--rc); border: 1px solid var(--line-strong); background: var(--fill); color: var(--muted); transition: all .12s; }
 .hltb-selbtn:hover { background: var(--fill-hover); color: var(--text); }
 .hltb-selbtn.on { background: var(--played-bg); border-color: var(--played-line); color: var(--green); }
-.hltb-list-group { display: inline-flex; align-items: center; background: var(--fill); border: 1px solid var(--line-strong); border-radius: var(--rc); padding: 2px; gap: 2px; }
-.hltb-pill { padding: .22rem .6rem; border: none; background: transparent; color: var(--muted); font: inherit; font-size: .78rem; font-weight: 700; border-radius: 4px; cursor: pointer; transition: all .12s; }
+.hltb-list-group { display: inline-flex; align-items: center; background: var(--inset); border: 1px solid var(--line-strong); border-radius: 8px; padding: 3px; gap: 4px; }
+.hltb-pill { padding: .38rem .95rem; border: none; background: transparent; color: var(--muted); font: inherit; font-size: .88rem; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all .12s; }
 .hltb-pill:hover { color: var(--text); background: var(--fill-hover); }
 .hltb-pill.on { color: #ffffff !important; }
 .hltb-pill.on.playing { background: #2563eb; }
 .hltb-pill.on.backlog { background: #d97706; }
 .hltb-pill.on.completed { background: #059669; }
 .m-hltb { margin-top: .6rem; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+
+/* ---------- HLTB Search Suggestions ---------- */
+.hltb-suggest-box {
+  margin-top: .4rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  padding: .4rem;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--rc);
+}
+.hltb-suggest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .15rem .35rem .25rem;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+.hltb-suggest-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 .2rem;
+}
+.hltb-suggest-close:hover {
+  color: var(--text);
+}
+.hltb-suggest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .45rem .65rem;
+  border-radius: var(--rc);
+  background: var(--solid);
+  border: 1px solid var(--line);
+  gap: .5rem;
+  transition: border-color .15s, background .15s;
+}
+.hltb-suggest-item:hover {
+  background: var(--fill-hover);
+  border-color: var(--accent);
+}
+.hltb-suggest-info {
+  flex: 1 1 10rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+.hltb-suggest-title {
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  min-width: 0;
+}
+.hltb-suggest-name {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  word-break: break-word;
+}
+.hltb-suggest-year {
+  font-size: .75rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.hltb-suggest-times {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .35rem;
+  font-size: .74rem;
+}
+.hltb-time-tag {
+  color: var(--muted);
+  background: var(--fill);
+  border: 1px solid var(--line);
+  padding: .1rem .35rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.hltb-time-tag b {
+  color: var(--text);
+}
+.hltb-suggest-btn {
+  flex-shrink: 0;
+  padding: .35rem .75rem !important;
+  font-size: .78rem !important;
+  font-weight: 700 !important;
+  height: 2.2rem !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+.hltb-suggest-empty {
+  padding: .65rem .85rem;
+  font-size: .8rem;
+  color: var(--muted);
+  text-align: center;
+}
 
 /* ---------- HLTB Banner (HowLongToBeat visual style from screenshot) ---------- */
 .hltb-banner { display: flex; align-items: stretch; gap: .45rem; margin: .65rem 0 .5rem; flex-wrap: wrap; }
@@ -421,12 +976,12 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 .hltb-style-val { font-size: 1.15rem; font-weight: 800; color: #ffffff; white-space: nowrap; }
 
 /* ---------- HLTB Progress Bar ---------- */
-.hltb-pbar { width: 100%; margin: .38rem 0 .2rem; }
-.hltb-pbar-head { display: flex; align-items: center; justify-content: space-between; font-size: .74rem; font-weight: 700; color: var(--muted); margin-bottom: .22rem; line-height: 1.25; }
+.hltb-pbar { width: 100%; margin: .55rem 0 .4rem; }
+.hltb-pbar-head { display: flex; align-items: center; justify-content: space-between; font-size: .74rem; font-weight: 700; color: var(--muted); margin-bottom: .26rem; line-height: 1.25; }
 .hltb-pbar-head b { color: var(--text); font-weight: 700; }
 .hltb-pbar-head .hltb-pbar-pct { color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; }
 .hltb-pbar-head .hltb-pbar-pct.done { color: var(--green); }
-.hltb-pbar-track { width: 100%; height: 7px; background: var(--inset); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; position: relative; }
+.hltb-pbar-track { width: 100%; height: 10px; background: var(--inset); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; position: relative; }
 .hltb-pbar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #06b6d4); transition: width .35s ease-out; min-width: 0; }
 .hltb-pbar-fill.done { background: linear-gradient(90deg, #059669, #34d399); }
 .hltb-pbar-fill.over { background: linear-gradient(90deg, #7c3aed, #a855f7); }
@@ -436,24 +991,24 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 
 /* ---------- Dashboard HLTB Progress List ---------- */
 .dash-progress-wrap { margin: 0; }
-.dash-prog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .35rem; }
-.dash-prog-head h2 { margin: 0; color: var(--muted); font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.dash-prog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .25rem; }
+.dash-prog-head h2 { margin: 0; color: var(--muted); font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .dash-prog-users { display: inline-flex; align-items: center; gap: .3rem; }
-.dash-user-pill { padding: .16rem .55rem; font: inherit; font-size: .76rem; font-weight: 700; border-radius: 999px; background: var(--fill); border: 1px solid var(--line); color: var(--muted); cursor: pointer; transition: all .12s; }
+.dash-user-pill { padding: .14rem .5rem; font: inherit; font-size: .74rem; font-weight: 700; border-radius: 999px; background: var(--fill); border: 1px solid var(--line); color: var(--muted); cursor: pointer; transition: all .12s; }
 .dash-user-pill:hover { background: var(--fill-hover); color: var(--text); }
 .dash-user-pill.on { font-weight: 800; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
 
-#pDashProgress { display: flex; flex-direction: column; gap: .45rem; }
-.prog-item { display: flex; align-items: center; padding: .55rem .8rem; border-radius: var(--r); background: var(--fill); border: 1px solid var(--line); cursor: pointer; transition: background .12s, border-color .12s, transform .12s; }
+#pDashProgress { display: flex; flex-direction: column; gap: .3rem; }
+.prog-item { display: flex; align-items: center; padding: .35rem .65rem; border-radius: var(--r); background: var(--fill); border: 1px solid var(--line); cursor: pointer; transition: background .12s, border-color .12s, transform .12s; }
 .prog-item:hover { background: var(--fill-hover); border-color: var(--accent); transform: translateY(-1px); }
 .prog-item:focus { outline: none; }
 .prog-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
-.prog-thumb { position: relative; width: 3.2rem; height: 3.2rem; margin-right: .75rem; flex: 0 0 auto; border-radius: var(--rc); overflow: hidden; background: var(--art); }
+.prog-thumb { position: relative; width: 2.6rem; height: 2.6rem; margin-right: .6rem; flex: 0 0 auto; border-radius: var(--rc); overflow: hidden; background: var(--art); }
 .prog-thumb img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-.prog-thumb .ph { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--ph); font-size: 1.35rem; }
+.prog-thumb .ph { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--ph); font-size: 1.15rem; }
 .prog-mid { flex: 1 1 auto; min-width: 0; }
-.prog-title { font-size: .95rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pbadge-stat { font-size: .72rem; padding: .1rem .45rem; border-radius: 4px; background: var(--inset); border: 1px solid var(--line); white-space: nowrap; }
+.prog-title { font-size: .88rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pbadge-stat { font-size: .7rem; padding: .08rem .4rem; border-radius: 4px; background: var(--inset); border: 1px solid var(--line); white-space: nowrap; }
 
 /* Compact distribution modal list */
 #distModalList { gap: .3rem !important; }
@@ -571,15 +1126,16 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   /* Console Access card: compact QR and non-clipped text on phone */
   .side-access {
     min-height: auto !important;
-    padding: .85rem .75rem;
+    padding: .5rem .6rem;
     flex: 0 0 auto;
     box-sizing: border-box;
   }
   .side-qr-box {
-    width: 8.5rem !important;
-    height: 8.5rem !important;
+    width: 7.2rem !important;
+    height: 7.2rem !important;
     max-width: 80%;
-    margin: .35rem 0 .45rem;
+    margin: .22rem 0 .28rem;
+    padding: .32rem;
   }
   .side-access-info {
     flex-shrink: 0;
@@ -592,36 +1148,50 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     line-height: 1.25;
   }
 
-  /* List views: Top games, Grid list, HLTB sync */
-  #pTop .item, #grid.list .item, #pHltb .item {
+  /* List views: Grid list, HLTB sync */
+  #grid.list .item, #pHltb .item {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     padding: .6rem .65rem;
     gap: .35rem .5rem;
   }
-  #pTop .thumb, #grid.list .thumb, #pHltb .thumb {
+  #grid.list .thumb, #pHltb .thumb {
     width: 2.7rem;
     height: 2.7rem;
     flex-shrink: 0;
   }
-  #pTop .rank, #grid.list .rank {
+  #grid.list .rank {
     width: 1.6rem;
     margin-right: .15rem;
     flex-shrink: 0;
     font-size: .9rem;
   }
-  #pHltb .hltb-selbtn {
-    flex-shrink: 0;
-    margin-right: .35rem !important;
-    padding: .3rem .55rem;
-    font-size: .75rem;
+  .hltb-table-head { padding: .35rem .6rem; }
+  .hltb-table-head .hltb-head-prog,
+  .hltb-table-head .hltb-head-list,
+  .hltb-table-head .hltb-head-status { display: none; }
+  .hltb-head-sync { width: 3.2rem; margin-right: .35rem; font-size: .68rem; }
+  .hltb-head-game { margin-left: 4.85rem; }
+  .hltb-check-wrap { width: 3.2rem; flex: 0 0 3.2rem; margin-right: .35rem; }
+  .hltb-check-btn, .hltb-check-btn.sm { width: 1.85rem; height: 1.85rem; flex: 0 0 1.85rem; font-size: 1.05rem; }
+  .hltb-section-head { margin: .55rem 0 .35rem; }
+  #pHltb .item { padding: .6rem .65rem; min-height: auto; }
+  #pHltb .thumb { width: 4.4rem; height: 4.4rem; flex: 0 0 4.4rem; border-radius: 8px; margin-right: .65rem; }
+  #pHltb .hltb-prog-col {
+    flex: 1 1 100%;
+    margin: .35rem 0 0;
   }
-  #pTop .imid, #grid.list .imid, #pHltb .imid {
+  #pHltb .hltb-status-col {
+    flex: 1 1 100%;
+    margin: .35rem 0 0;
+    justify-content: flex-start;
+  }
+  #grid.list .imid, #pHltb .imid {
     flex: 1 1 calc(100% - 7rem);
     min-width: 0;
   }
-  #pTop .iname, #grid.list .iname, #pHltb .iname {
+  #grid.list .iname, #pHltb .iname {
     font-size: .92rem;
     font-weight: 700;
     line-height: 1.25;
@@ -640,10 +1210,10 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     margin-top: .25rem !important;
   }
   .hltb-pill {
-    padding: .18rem .5rem;
-    font-size: .74rem;
+    padding: .3rem .75rem;
+    font-size: .82rem;
   }
-  #pTop .iright, #grid.list .iright, #pHltb .iright {
+  #grid.list .iright, #pHltb .iright {
     flex: 1 1 100%;
     width: 100%;
     margin-left: 0 !important;
@@ -657,7 +1227,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     flex-wrap: wrap;
     gap: .35rem;
   }
-  #pTop .ival, #pTop .ilast, #grid.list .ival, #grid.list .ilast, #pHltb .ival, #pHltb .ilast {
+  #grid.list .ival, #grid.list .ilast, #pHltb .ival, #pHltb .ilast {
     width: auto !important;
     flex: 1 1 7.5rem;
     margin: 0 !important;
@@ -706,6 +1276,10 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   .hltb-style-btn { padding: .45rem .35rem; }
   .hltb-style-lbl { font-size: .68rem; }
   .hltb-style-val { font-size: 1rem; }
+  .hltb-match-card { padding: .45rem .6rem; }
+  .hltb-match-title { font-size: .84rem; }
+  .hltb-manual-row { gap: .35rem; }
+  .hltb-manual-label { width: 100%; margin-bottom: .15rem; }
 
   /* Misc */
   .grid { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); grid-gap: .468rem; }
@@ -721,7 +1295,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
   <div class="topline">
     <div class="tabs" role="tablist">
       <button class="tab on" id="tabDash" type="button" role="tab" aria-selected="true">Dashboard</button>
-      <button class="tab" id="tabTop" type="button" role="tab" aria-selected="false">Top games</button>
       <button class="tab" id="tabHltb" type="button" role="tab" aria-selected="false">HLTB Sync <span class="tbadge" id="hltbTabBadge" style="display:none">0</span></button>
       <div id="syncIndicator" class="sync-pill" style="display:none;" title="HowLongToBeat auto-sync in progress">
         <span class="sync-spin"></span>
@@ -729,11 +1302,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       </div>
     </div>
     <div class="tright">
-      <span class="seg" id="tfmt" role="radiogroup" aria-label="Time format">
-        <button type="button" role="radio" data-f="dhm">Day, Hour, Minute</button>
-        <button type="button" role="radio" data-f="hm">Hour, Minute</button>
-        <button type="button" role="radio" data-f="h">Hour</button>
-      </span>
       <button class="theme" id="theme" type="button" role="switch" aria-checked="true" aria-label="Dark theme">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         <span class="track"><i></i></span>
@@ -791,62 +1359,101 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         </div>
       </div>
     </div>
-    <div class="box panel" id="vTop" style="display:none"><div class="cols" id="pTop"></div></div>
     <div class="box panel" id="vHltb" style="display:none">
       <div class="hltb-top">
+        <!-- Card 1: Sync Control & Statistics -->
         <div class="hltb-card">
-          <h3>PS5 Native HLTB Auto-Sync</h3>
-          <p class="sub" id="hltbAcctStatus">Loading HLTB status...</p>
-          <div id="hltbSyncBar" class="hltb-sync-bar-wrap" style="display:none">
-            <div class="hltb-sync-bar"><div class="hltb-sync-progress"></div></div>
-            <div class="hltb-sync-status-text" id="hltbSyncStatusText">Syncing games to HowLongToBeat...</div>
+          <div class="hltb-card-head">
+            <h3>Sync Control &amp; Status</h3>
+            <p class="sub" style="margin:0 0 .5rem">Track your playtime and sync selected games to HowLongToBeat.</p>
           </div>
-          <div class="hltb-row">
-            <label for="hltbUserSel" class="elabel" style="margin:0">PS5 Profile:</label>
-            <select id="hltbUserSel" class="hltb-sel"></select>
-            <button class="chip" id="hltbAutoBtn" type="button" style="height:2.5rem;margin:0">PS5 Auto-Sync: ON</button>
-          </div>
-          <div class="tiles" style="margin:.6rem 0">
+          <div class="tiles" style="margin:.45rem 0 .6rem">
             <div class="tile sm"><b id="hSelected">0</b><span>Selected</span></div>
             <div class="tile sm"><b id="hPend">0</b><span>Pending</span></div>
             <div class="tile sm"><b id="hSynced">0</b><span>Synced</span></div>
             <div class="tile wide"><b id="hLast">Never</b><span>Last Synced</span></div>
           </div>
-          <div class="hltb-row" style="margin-top:.65rem">
+          <div id="hltbSyncBar" class="hltb-sync-bar-wrap" style="display:none">
+            <div class="hltb-sync-bar"><div class="hltb-sync-progress"></div></div>
+            <div class="hltb-sync-status-text" id="hltbSyncStatusText">Syncing games to HowLongToBeat...</div>
+          </div>
+          <div class="hltb-row" style="margin-top:.5rem">
             <button class="refresh primary" id="hltbSyncNow" type="button">Sync Selected Now</button>
             <button class="refresh" id="hltbSyncAll" type="button" title="Force re-sync all selected games">Force Sync Selected</button>
             <button class="refresh" id="hltbMatchAll" type="button" title="Auto-match all installed games with HowLongToBeat">Auto-Match All Games</button>
           </div>
         </div>
+
+        <!-- Card 2: Profile & Account Settings -->
         <div class="hltb-card">
-          <h3>HowLongToBeat Login (One-Time Setup)</h3>
-          <div id="hltbLoggedOutBox">
-            <p class="sub" style="margin-bottom:.5rem">Sign in once from your phone (via <b>Phone QR</b>). Your session is stored on the PS5 so selected games sync automatically every time you open PS5-HLTB.elf!</p>
-            <div class="hltb-row">
-              <input id="hltbUserInp" class="hltb-txt" type="text" placeholder="HLTB Username" autocomplete="username">
-              <input id="hltbPassInp" class="hltb-txt" type="password" placeholder="HLTB Password" autocomplete="current-password">
+          <div class="hltb-card-head">
+            <h3>Profile &amp; Account Settings</h3>
+            <p class="sub" id="hltbAcctStatus" style="margin:0 0 .5rem">Loading HLTB status...</p>
+          </div>
+          <div class="hltb-row" style="margin-top:0">
+            <label for="hltbUserSel" class="elabel" style="margin:0">PS5 Profile:</label>
+            <select id="hltbUserSel" class="hltb-sel"></select>
+            <button class="chip" id="hltbAutoBtn" type="button" style="height:2.5rem;margin:0">PS5 Auto-Sync: ON</button>
+          </div>
+
+          <!-- Connected State -->
+          <div id="hltbLoggedInBox" style="display:none;margin-top:.55rem">
+            <div class="hltb-acct-box">
+              <div class="hltb-acct-info">
+                <div class="hltb-acct-badge">
+                  <span class="hltb-status-dot"></span>
+                  <span id="hltbLoggedInName">User</span>
+                </div>
+                <span class="sub" style="font-size:.78rem">Saved on PS5 (<code>/data/playtime_hltb.db</code>)</span>
+              </div>
+              <button class="refresh" id="hltbLogoutBtn" type="button" style="padding:.4rem .8rem;font-size:.82rem">Log Out</button>
             </div>
-            <div id="hltbCaptchaBox" style="margin:.45rem 0"></div>
-            <div class="hltb-row">
+          </div>
+
+          <!-- Disconnected State -->
+          <div id="hltbLoggedOutBox" style="margin-top:.55rem">
+            <p class="sub" style="margin-bottom:.45rem">Sign in once from your phone or browser to enable automatic background sync:</p>
+            <div class="hltb-row" style="margin:.3rem 0">
+              <input id="hltbUserInp" class="hltb-txt" type="text" placeholder="HLTB Username" autocomplete="username" style="flex:1 1 9rem">
+              <input id="hltbPassInp" class="hltb-txt" type="password" placeholder="HLTB Password" autocomplete="current-password" style="flex:1 1 9rem">
+            </div>
+            <div id="hltbCaptchaBox" style="margin:.35rem 0"></div>
+            <div class="hltb-row" style="margin-top:.45rem">
               <button class="refresh primary" id="hltbLoginBtn" type="button">Sign In &amp; Save to PS5</button>
               <button class="refresh" id="hltbCookieToggle" type="button">Use Session Cookie</button>
             </div>
             <div id="hltbCookieBox" style="display:none;margin-top:.45rem">
-              <div class="hltb-row">
-                <input id="hltbCookieInp" class="hltb-txt" type="text" placeholder="Paste HLTB Cookie header value">
+              <div class="hltb-row" style="margin:0">
+                <input id="hltbCookieInp" class="hltb-txt" type="text" placeholder="Paste HLTB Cookie header value" style="flex:1 1 12rem">
                 <button class="refresh primary" id="hltbCookieBtn" type="button">Save Cookie</button>
               </div>
             </div>
           </div>
-          <div id="hltbLoggedInBox" style="display:none">
-            <p class="sub" style="margin-bottom:.6rem">Your HLTB session is saved on your PS5 (<code>/data/playtime_hltb.db</code>). Whenever you launch <b>PS5-HLTB.elf</b> on your PS5, your selected games will automatically sync in the background!</p>
-            <div class="hltb-row">
-              <button class="refresh" id="hltbLogoutBtn" type="button">Log Out of HLTB</button>
-            </div>
-          </div>
         </div>
       </div>
-      <h2>Select Games to Sync with HLTB (only selected games are synced)</h2>
+      <div class="hltb-section-head">
+        <h2>Select Games to Sync with HLTB</h2>
+        <div class="hltb-filter-wrap">
+          <label for="hltbFilterSel" class="elabel" style="margin:0;font-size:.8rem;font-weight:700">Filter:</label>
+          <select id="hltbFilterSel" class="hltb-sel sm">
+            <option value="all">All Games</option>
+            <option value="selected">Selected for Sync</option>
+            <option value="playing">Playing</option>
+            <option value="backlog">Backlog</option>
+            <option value="completed">Completed</option>
+            <option value="unmatched">Unmatched</option>
+          </select>
+        </div>
+      </div>
+      <div class="hltb-table-head">
+        <div class="hltb-head-sync" title="Select / Deselect all visible games">
+          <button type="button" class="hltb-check-btn" id="hltbSelectAllBtn" aria-label="Toggle select all games"></button>
+        </div>
+        <span class="hltb-head-game">Game</span>
+        <span class="hltb-head-prog">HLTB Progress</span>
+        <span class="hltb-head-list">HLTB List</span>
+        <span class="hltb-head-status">Sync Status</span>
+      </div>
       <div class="cols" id="pHltb"></div>
     </div>
   </section>
@@ -896,8 +1503,9 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       <div class="elabel">HowLongToBeat (<span id="mHltbStatus">Not selected for sync</span>)</div>
       <div id="mHltbBannerBox"></div>
       <div id="mHltbProgressBox"></div>
+      <div id="mHltbMatchCard" class="hltb-match-card"></div>
       <div class="hltb-row" style="margin:.35rem 0 0">
-        <button class="hltb-selbtn" id="mHltbToggle" type="button">+ Select for HLTB Sync</button>
+        <button class="hltb-selbtn" id="mHltbToggle" type="button">+ Enable Sync</button>
         <div class="hltb-list-group" id="mHltbListGroup">
           <span style="font-size:.78rem;font-weight:700;color:var(--muted);padding:0 .35rem">Status:</span>
           <button type="button" class="hltb-pill playing on" data-list="playing">Playing</button>
@@ -905,10 +1513,18 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
           <button type="button" class="hltb-pill completed" data-list="completed">Completed</button>
         </div>
       </div>
-      <div class="hltb-row" style="margin:.35rem 0 0">
-        <input id="mHltbInput" class="hltb-inp" type="number" placeholder="Custom HLTB ID">
-        <button class="refresh" id="mHltbSave" type="button" style="padding:.4rem .8rem;font-size:.82rem">Set HLTB ID</button>
-        <button class="refresh" id="mHltbAuto" type="button" style="padding:.4rem .8rem;font-size:.82rem">Auto-Match</button>
+      <div id="mHltbEditArea" style="display:none;margin-top:.45rem;padding-top:.45rem;border-top:1px dashed var(--line)">
+        <div class="hltb-row" style="margin:0">
+          <input id="mHltbSearchInp" class="hltb-txt" type="text" placeholder="Search title on HowLongToBeat...">
+          <button class="refresh primary" id="mHltbSearchBtn" type="button" style="padding:.4rem .85rem;font-size:.82rem">Search HLTB</button>
+          <button class="refresh" id="mHltbAuto" type="button" style="padding:.4rem .85rem;font-size:.82rem" title="Automatically match by title">Auto-Match</button>
+        </div>
+        <div id="mHltbSuggestBox" class="hltb-suggest-box" style="display:none"></div>
+        <div class="hltb-manual-row" style="margin:.45rem 0 0">
+          <span class="hltb-manual-label">Or link by exact ID:</span>
+          <input id="mHltbInput" class="hltb-inp" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="HLTB Game ID">
+          <button class="refresh" id="mHltbSave" type="button" style="padding:.4rem .8rem;font-size:.82rem">Link by ID</button>
+        </div>
       </div>
     </div>
     <div class="mbtns">
@@ -981,6 +1597,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     query: '', maxSec: 0, view: 'cards', tfmt: 'dhm',
     hltb: { ps5User: '', hltbUserId: 0, hltbUsername: '', autoSync: 1, lastSync: '', sessionExpired: 0, map: {} }
   };
+  var curHltbFilter = 'all';
   try {
     var savedPlat = localStorage.getItem('pt-platforms');
     if (savedPlat) {
@@ -1558,7 +2175,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
           }
           renderDashboard();
           if ($('vHltb').style.display !== 'none') { renderHltbTab(); }
-          if ($('vTop').style.display !== 'none') { renderTopView(); }
         }
 
         if (isNowActive) {
@@ -1685,8 +2301,9 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     }
   }
 
-  var TABS = ['Dash', 'Top', 'Hltb'];
+  var TABS = ['Dash', 'Hltb'];
   function showTab(which) {
+    if (which !== 'Hltb') { which = 'Dash'; }
     var i, on;
     for (i = 0; i < TABS.length; i++) {
       on = TABS[i] === which;
@@ -1699,16 +2316,14 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     try { localStorage.setItem('pt-tab', which); } catch (err) {}
   }
   $('tabDash').onclick = function () { showTab('Dash'); };
-  $('tabTop').onclick = function () { showTab('Top'); };
   $('tabHltb').onclick = function () { showTab('Hltb'); };
   try {
     var qParams = new URLSearchParams(location.search);
     var qTab = qParams.get('tab');
-    if (qTab && /top/i.test(qTab)) { showTab('Top'); }
-    else if (qTab && /hltb/i.test(qTab)) { showTab('Hltb'); }
+    if (qTab && /hltb/i.test(qTab)) { showTab('Hltb'); }
     else {
       var st = localStorage.getItem('pt-tab');
-      if (st === 'Top' || st === 'Hltb') { showTab(st); }
+      if (st === 'Hltb') { showTab('Hltb'); }
     }
   } catch (err) {}
 
@@ -2006,16 +2621,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     $('tNever').textContent = games.length - played;
     $('tAvg').textContent = played ? (fmtLong(total / played) || '-') : '-';
 
-    var top = games.slice().sort(byPlayed).filter(function (g) { return g.sec > 0; }).slice(0, 15);
-    var pTop = $('pTop');
-    clear(pTop);
-    if (!top.length) { pTop.appendChild(el('div', 'none', 'Nothing played yet.')); }
-    for (i = 0; i < top.length; i++) {
-      (function (g, n) {
-        pTop.appendChild(makeTopItem(g, n));
-      })(top[i], i + 1);
-    }
-
     var pUsers = $('pUsers');
     clear(pUsers);
     if (!state.users.length) { pUsers.appendChild(el('div', 'none', 'No users found.')); }
@@ -2188,6 +2793,39 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       });
   }
 
+  function toggleBatchSelection(ids, selected) {
+    var uId = activeHltbUserId();
+    if (!uId) { toast('No PS5 user profile found'); return; }
+    if (!ids || !ids.length) { return; }
+
+    toast((selected ? 'Selecting ' : 'Deselecting ') + ids.length + ' game' + (ids.length === 1 ? '' : 's') + '...');
+
+    var body = 'user=' + encodeURIComponent(uId) +
+               '&id=' + encodeURIComponent(ids.join(',')) +
+               '&selected=' + (selected ? '1' : '0');
+
+    fetch('/api/hltb/select', {
+      method: 'POST',
+      headers: Object.assign({}, csrfHeaders(), { 'Content-Type': 'application/x-www-form-urlencoded' }),
+      body: body
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { throw new Error(d.error); }
+        return fetch('/api/hltb', { cache: 'no-store' }).then(function (r) { return r.json(); });
+      })
+      .then(function (h) {
+        prepareHltb(h);
+        renderDashboard();
+        renderGrid();
+        renderHltbTab();
+        toast((selected ? 'Enabled sync for ' : 'Removed sync for ') + ids.length + ' game' + (ids.length === 1 ? '' : 's'));
+      })
+      .catch(function (e) {
+        toast((e && e.message) ? e.message : 'Failed to update selection');
+      });
+  }
+
   function renderHltbTab() {
     var sel = $('hltbUserSel');
     clear(sel);
@@ -2218,11 +2856,13 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     }
 
     if (acct.loggedIn && !acct.sessionExpired) {
-      $('hltbAcctStatus').textContent = 'Profile ' + userLabel(uIdx) + ' logged in as ' +
-        (acct.hltbUsername || ('User #' + acct.hltbUserId)) +
-        ' — PS5 auto-syncs your selected games on startup.';
+      $('hltbAcctStatus').textContent = 'Profile ' + userLabel(uIdx) + ' is linked — auto-syncs on startup.';
       $('hltbLoggedOutBox').style.display = 'none';
       $('hltbLoggedInBox').style.display = 'block';
+      var uNameEl = $('hltbLoggedInName');
+      if (uNameEl) {
+        uNameEl.textContent = acct.hltbUsername || ('User #' + acct.hltbUserId);
+      }
     } else if (acct.sessionExpired) {
       $('hltbAcctStatus').textContent = '⚠️ Profile ' + userLabel(uIdx) + ' session has expired! Please sign in again below.';
       $('hltbLoggedOutBox').style.display = 'block';
@@ -2236,49 +2876,181 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     }
 
     var selCount = 0, pend = 0, synced = 0;
-    var pHltb = $('pHltb');
-    clear(pHltb);
+    var counts = { all: 0, selected: 0, playing: 0, backlog: 0, completed: 0, unmatched: 0 };
+    var filteredList = [];
+
     var list = state.games.slice().sort(byPlayed);
     for (var i = 0; i < list.length; i++) {
       var g = list[i];
       if (isHomebrew(g)) { continue; } /* Exclude homebrew apps from HLTB sync list */
       var st = gameSyncStatus(g);
-      if (st.selected) { selCount++; }
+      counts.all++;
+      if (st.selected) {
+        selCount++;
+        counts.selected++;
+        var lt = (st.listType || 'playing');
+        if (counts[lt] !== undefined) { counts[lt]++; }
+      }
       if (st.state === 'pending') { pend++; }
       if (st.state === 'synced') { synced++; }
+      var isMatched = (st.entry && st.entry.hltbId > 0);
+      if (!isMatched) { counts.unmatched++; }
 
+      var match = false;
+      if (curHltbFilter === 'all') { match = true; }
+      else if (curHltbFilter === 'selected') { match = st.selected; }
+      else if (curHltbFilter === 'playing') { match = st.selected && (st.listType || 'playing') === 'playing'; }
+      else if (curHltbFilter === 'backlog') { match = st.selected && st.listType === 'backlog'; }
+      else if (curHltbFilter === 'completed') { match = st.selected && st.listType === 'completed'; }
+      else if (curHltbFilter === 'unmatched') { match = !isMatched; }
+
+      if (match) {
+        filteredList.push({ game: g, status: st });
+      }
+    }
+
+    /* Update Filter Dropdown */
+    var fSel = $('hltbFilterSel');
+    if (fSel) {
+      fSel.options[0].text = 'All Games (' + counts.all + ')';
+      fSel.options[1].text = 'Selected for Sync (' + counts.selected + ')';
+      fSel.options[2].text = 'Playing (' + counts.playing + ')';
+      fSel.options[3].text = 'Backlog (' + counts.backlog + ')';
+      fSel.options[4].text = 'Completed (' + counts.completed + ')';
+      fSel.options[5].text = 'Unmatched (' + counts.unmatched + ')';
+      fSel.value = curHltbFilter;
+      fSel.onchange = function () {
+        curHltbFilter = this.value;
+        renderHltbTab();
+      };
+    }
+
+    /* Update Select All Header Checkbox */
+    var visibleSelectedCount = 0;
+    for (var vi = 0; vi < filteredList.length; vi++) {
+      if (filteredList[vi].status.selected) { visibleSelectedCount++; }
+    }
+    var selAllBtn = $('hltbSelectAllBtn');
+    if (selAllBtn) {
+      if (filteredList.length > 0 && visibleSelectedCount === filteredList.length) {
+        selAllBtn.className = 'hltb-check-btn on';
+        selAllBtn.innerHTML = '\u2713';
+        selAllBtn.title = 'Deselect all ' + filteredList.length + ' visible games';
+        selAllBtn.setAttribute('aria-label', 'Deselect all visible games');
+      } else if (visibleSelectedCount > 0) {
+        selAllBtn.className = 'hltb-check-btn partial';
+        selAllBtn.innerHTML = '\u2212';
+        selAllBtn.title = 'Select all ' + filteredList.length + ' visible games (' + visibleSelectedCount + ' currently selected)';
+        selAllBtn.setAttribute('aria-label', 'Select all visible games');
+      } else {
+        selAllBtn.className = 'hltb-check-btn';
+        selAllBtn.innerHTML = '';
+        selAllBtn.title = 'Select all ' + filteredList.length + ' visible games';
+        selAllBtn.setAttribute('aria-label', 'Select all visible games');
+      }
+
+      selAllBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (!filteredList.length) { return; }
+        var allSelected = (visibleSelectedCount === filteredList.length);
+        var targetSelected = !allSelected;
+        var ids = [];
+        for (var j = 0; j < filteredList.length; j++) {
+          ids.push(filteredList[j].game.id);
+        }
+        toggleBatchSelection(ids, targetSelected);
+      };
+    }
+
+    var pHltb = $('pHltb');
+    clear(pHltb);
+
+    for (var fi = 0; fi < filteredList.length; fi++) {
       (function (game, status) {
         var row = el('div', 'item');
         row.onclick = function () { showDetail(game, this); };
 
-        var selBtn = el('button', status.selected ? 'hltb-selbtn on' : 'hltb-selbtn',
-                        status.selected ? '\u2713 Selected' : '+ Select');
-        selBtn.type = 'button';
-        selBtn.style.marginRight = '.55rem';
-        selBtn.onclick = function (e) {
+        var checkWrap = el('div', 'hltb-check-wrap');
+        var checkBtn = el('button', status.selected ? 'hltb-check-btn on' : 'hltb-check-btn');
+        checkBtn.type = 'button';
+        checkBtn.innerHTML = status.selected ? '\u2713' : '';
+        checkBtn.title = status.selected ? 'Sync enabled (click to disable)' : 'Click to enable sync';
+        checkBtn.setAttribute('aria-label', (status.selected ? 'Disable' : 'Enable') + ' sync for ' + game.name);
+        checkBtn.onclick = function (e) {
           e.stopPropagation();
           toggleGameSelection(game, !status.selected, null);
         };
-        row.appendChild(selBtn);
+        checkWrap.appendChild(checkBtn);
+        row.appendChild(checkWrap);
 
         row.appendChild(makeArt(game, 'thumb'));
         var mid = el('div', 'imid');
         mid.appendChild(el('div', 'iname', game.name));
-        var stamps = el('div', 'mstamps');
+        var stamps = el('div', 'hltb-game-stamps');
         stamps.appendChild(idChip(game.id, 'idchip'));
         if (status.entry && status.entry.hltbId > 0) {
-          stamps.appendChild(el('span', 'gstamp green', 'HLTB #' + status.entry.hltbId +
-            (status.entry.hltbTitle ? ' (' + status.entry.hltbTitle + ')' : '')));
+          var hSpan = el('span', 'gstamp green hltb-tag', 'HLTB #' + status.entry.hltbId);
+          if (status.entry.hltbTitle) { hSpan.title = 'Matched to ' + status.entry.hltbTitle; }
+          stamps.appendChild(hSpan);
         } else if (status.selected) {
-          stamps.appendChild(el('span', 'gstamp amber', 'Auto-match on sync'));
+          stamps.appendChild(el('span', 'gstamp amber hltb-tag', 'Auto-match'));
         }
-        if (status.entry && status.entry.compMain > 0) {
-          stamps.appendChild(el('span', 'gstamp', 'Main: ' + fmtHours(status.entry.compMain) + 'h'));
-        }
+        mid.appendChild(stamps);
+        row.appendChild(mid);
 
-        /* Inline status buttons: Playing | Backlog | Completed */
+        /* Middle Column: HLTB Progress Bar (Option 1) */
+        var progCol = el('div', 'hltb-prog-col');
+        var times = gameHltbTimes(game);
+        var targetSec = (times && times.main > 0) ? times.main : (times ? times.all : 0);
+        var playedSec = status.sec || 0;
+
+        if (targetSec > 0) {
+          var pct = Math.min(Math.round((playedSec / targetSec) * 100), 999);
+          var isDone = playedSec >= targetSec;
+          var isOver = pct > 100;
+
+          var progTop = el('div', 'hltb-prog-top');
+          var topLbl = el('span', 'hltb-prog-lbl');
+          topLbl.innerHTML = 'Main Story: <b>' + fmtHltbTime(targetSec) + '</b>';
+          progTop.appendChild(topLbl);
+          progTop.appendChild(el('span', isDone ? 'hltb-prog-pct done' : 'hltb-prog-pct', pct + '%'));
+          progCol.appendChild(progTop);
+
+          var track = el('div', 'hltb-prog-track');
+          var fill = el('div', 'hltb-prog-fill' + (isOver ? ' over' : (isDone ? ' done' : '')));
+          fill.style.width = Math.min(pct, 100) + '%';
+          track.appendChild(fill);
+          progCol.appendChild(track);
+
+          var progSub = el('div', 'hltb-prog-sub');
+          var playedText = playedSec > 0 ? (fmtLong(playedSec) + ' played') : '0h played';
+          var remainText = '';
+          if (isDone) {
+            remainText = 'Story completed';
+          } else if (targetSec > playedSec) {
+            remainText = '~' + fmtHltbTime(targetSec - playedSec) + ' left';
+          }
+          progSub.appendChild(el('span', '', playedText));
+          if (remainText) { progSub.appendChild(el('span', '', remainText)); }
+          progCol.appendChild(progSub);
+        } else if (status.entry && status.entry.hltbId > 0) {
+          progCol.className = 'hltb-prog-col dim';
+          var noTimeWrap = el('div', 'hltb-prog-unmatched');
+          noTimeWrap.appendChild(el('span', '', 'Endless / Multiplayer (no story target)'));
+          progCol.appendChild(noTimeWrap);
+        } else {
+          progCol.className = 'hltb-prog-col dim';
+          var unmatchWrap = el('div', 'hltb-prog-unmatched');
+          var dot = el('span', 'hltb-prog-unmatched-dot');
+          unmatchWrap.appendChild(dot);
+          unmatchWrap.appendChild(el('span', '', 'Not matched to HLTB yet'));
+          progCol.appendChild(unmatchWrap);
+        }
+        row.appendChild(progCol);
+
+        /* Dedicated Status Column: Playing | Backlog | Completed */
+        var statusCol = el('div', status.selected ? 'hltb-status-col' : 'hltb-status-col dim');
         var listGroup = el('div', 'hltb-list-group');
-        listGroup.style.margin = '.25rem 0 0';
         var listKeys = ['playing', 'backlog', 'completed'];
         var listNames = { playing: 'Playing', backlog: 'Backlog', completed: 'Completed' };
         for (var lk = 0; lk < listKeys.length; lk++) {
@@ -2286,6 +3058,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
             var isCur = (status.selected && (status.listType || 'playing') === lKey);
             var pill = el('button', 'hltb-pill ' + lKey + (isCur ? ' on' : ''), listNames[lKey]);
             pill.type = 'button';
+            pill.title = 'Set status to ' + listNames[lKey];
             pill.onclick = function (e) {
               e.stopPropagation();
               toggleGameSelection(game, true, null, lKey);
@@ -2293,10 +3066,8 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
             listGroup.appendChild(pill);
           })(listKeys[lk]);
         }
-        stamps.appendChild(listGroup);
-
-        mid.appendChild(stamps);
-        row.appendChild(mid);
+        statusCol.appendChild(listGroup);
+        row.appendChild(statusCol);
 
         var right = el('div', 'iright');
         var label = '';
@@ -2327,10 +3098,17 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         }
         row.appendChild(right);
         pHltb.appendChild(row);
-      })(g, st);
+      })(filteredList[fi].game, filteredList[fi].status);
     }
+
     if (!pHltb.firstChild) {
-      pHltb.appendChild(el('div', 'none', 'No installed games found.'));
+      var emptyMsg = 'No installed games found.';
+      if (curHltbFilter === 'selected') { emptyMsg = 'No games selected for HLTB sync yet.'; }
+      else if (curHltbFilter === 'playing') { emptyMsg = 'No games marked as Playing.'; }
+      else if (curHltbFilter === 'backlog') { emptyMsg = 'No games marked as Backlog.'; }
+      else if (curHltbFilter === 'completed') { emptyMsg = 'No games marked as Completed.'; }
+      else if (curHltbFilter === 'unmatched') { emptyMsg = 'All installed games are matched with HowLongToBeat!'; }
+      pHltb.appendChild(el('div', 'none', emptyMsg));
     }
 
     $('hSelected').textContent = selCount;
@@ -2529,7 +3307,7 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
       var curList = (uEntry && uEntry.listType) ? uEntry.listType : 'playing';
       var tBtn = $('mHltbToggle');
       tBtn.className = isSel ? 'hltb-selbtn on' : 'hltb-selbtn';
-      tBtn.textContent = isSel ? '\u2713 Selected for HLTB Sync' : '+ Select for HLTB Sync';
+      tBtn.textContent = isSel ? '\u2713 Sync Enabled' : '+ Enable Sync';
 
       var listPills = $('mHltbListGroup').getElementsByTagName('button');
       for (var lpi = 0; lpi < listPills.length; lpi++) {
@@ -2538,14 +3316,64 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
         listPills[lpi].className = 'hltb-pill ' + pList + (isPillOn ? ' on' : '');
       }
 
+      var matchCard = $('mHltbMatchCard');
+      var editArea = $('mHltbEditArea');
+      clear(matchCard);
       if (hEntry && hEntry.hltbId > 0) {
-        $('mHltbStatus').textContent = (isSel ? ('Selected (' + curList.toUpperCase() + ') — ') : 'Not selected — ') +
-          'Linked to HLTB #' + hEntry.hltbId + (hEntry.hltbTitle ? ' (' + hEntry.hltbTitle + ')' : '');
+        $('mHltbStatus').textContent = isSel ? ('Selected (' + curList.toUpperCase() + ')') : 'Not selected for sync';
         $('mHltbInput').value = hEntry.hltbId;
+        if (editArea) { editArea.style.display = 'none'; }
+
+        matchCard.className = 'hltb-match-card matched';
+        var mLeft = el('div', 'hltb-match-left');
+        mLeft.appendChild(el('div', 'hltb-match-badge', '\u2713 Matched'));
+        var mInfo = el('div', 'hltb-match-info');
+        var mTitle = el('div', 'hltb-match-title', (hEntry.hltbTitle || game.name) + ' ');
+        mTitle.appendChild(el('span', 'hltb-match-id', '#' + hEntry.hltbId));
+        mInfo.appendChild(mTitle);
+        mLeft.appendChild(mInfo);
+        matchCard.appendChild(mLeft);
+
+        var mActions = el('div', 'hltb-match-actions');
+        var changeBtn = el('button', 'refresh hltb-match-btn', 'Change Match');
+        changeBtn.type = 'button';
+        changeBtn.onclick = function () {
+          if (!editArea) return;
+          if (editArea.style.display === 'none') {
+            editArea.style.display = 'block';
+            changeBtn.textContent = 'Hide Options';
+            try { $('mHltbSearchInp').focus(); } catch (e) {}
+          } else {
+            editArea.style.display = 'none';
+            changeBtn.textContent = 'Change Match';
+            $('mHltbSuggestBox').style.display = 'none';
+          }
+        };
+        mActions.appendChild(changeBtn);
+
+        var extLink = el('a', 'hltb-link-ext', 'View on HLTB \u2197');
+        extLink.href = 'https://howlongtobeat.com/game/' + hEntry.hltbId;
+        extLink.target = '_blank';
+        extLink.rel = 'noopener';
+        mActions.appendChild(extLink);
+
+        matchCard.appendChild(mActions);
       } else {
-        $('mHltbStatus').textContent = isSel ? ('Selected (' + curList.toUpperCase() + ') — Auto-match by name on sync') : 'Not selected for sync';
+        $('mHltbStatus').textContent = isSel ? ('Selected (' + curList.toUpperCase() + ') — Auto-match on sync') : 'Not selected for sync';
         $('mHltbInput').value = '';
+        if (editArea) { editArea.style.display = 'block'; }
+
+        matchCard.className = 'hltb-match-card unmatched';
+        var mLeft = el('div', 'hltb-match-left');
+        mLeft.appendChild(el('div', 'hltb-match-badge', 'Not Matched'));
+        var mInfo = el('div', 'hltb-match-info');
+        mInfo.appendChild(el('div', 'hltb-match-sub', 'No HowLongToBeat completion times linked yet. Search or auto-match below.'));
+        mLeft.appendChild(mInfo);
+        matchCard.appendChild(mLeft);
       }
+      $('mHltbSearchInp').value = game.name || '';
+      $('mHltbSuggestBox').style.display = 'none';
+      clear($('mHltbSuggestBox'));
 
       var curModalTarget = 'main';
       var curModalUserIdx = activeHltbUserIdx();
@@ -2975,6 +3803,119 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     var isSel = (uEntry && uEntry.selected) ? true : false;
     toggleGameSelection(openGame, !isSel, null);
   };
+  function searchHltbSuggestions() {
+    if (!openGame) { return; }
+    var q = ($('mHltbSearchInp').value || '').trim();
+    if (!q) {
+      toast('Enter a game title to search');
+      $('mHltbSearchInp').focus();
+      return;
+    }
+    var btn = $('mHltbSearchBtn');
+    var sBox = $('mHltbSuggestBox');
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+    sBox.style.display = 'flex';
+    clear(sBox);
+
+    var head = el('div', 'hltb-suggest-header');
+    head.appendChild(el('span', '', 'HowLongToBeat Suggestions'));
+    var cBtn = el('button', 'hltb-suggest-close', '\u00d7');
+    cBtn.type = 'button';
+    cBtn.title = 'Close suggestions';
+    cBtn.onclick = function () { sBox.style.display = 'none'; };
+    head.appendChild(cBtn);
+    sBox.appendChild(head);
+
+    sBox.appendChild(el('div', 'hltb-suggest-empty', 'Searching HowLongToBeat for "' + q + '"...'));
+
+    fetch('/api/hltb/search?q=' + encodeURIComponent(q), { cache: 'no-store' })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        btn.disabled = false;
+        btn.textContent = 'Search HLTB';
+        clear(sBox);
+        sBox.appendChild(head);
+
+        if (data.error) {
+          sBox.appendChild(el('div', 'hltb-suggest-empty', 'Search error: ' + data.error));
+          return;
+        }
+        var results = data.results || [];
+        if (results.length === 0) {
+          sBox.appendChild(el('div', 'hltb-suggest-empty', 'No matches found on HowLongToBeat for "' + q + '". Try a shorter title or set the custom ID below.'));
+          return;
+        }
+
+        var uEntry = userHltbEntry(openGame.id);
+        var hEntry = uEntry || sharedHltbEntry(openGame.id);
+
+        for (var ri = 0; ri < results.length; ri++) {
+          (function (item) {
+            var row = el('div', 'hltb-suggest-item');
+            var info = el('div', 'hltb-suggest-info');
+            var titleRow = el('div', 'hltb-suggest-title');
+            var nameSpan = el('span', 'hltb-suggest-name', item.name);
+            nameSpan.title = item.name + ' (#' + item.id + ')';
+            titleRow.appendChild(nameSpan);
+            if (item.year) {
+              titleRow.appendChild(el('span', 'hltb-suggest-year', '(' + item.year + ')'));
+            }
+            info.appendChild(titleRow);
+
+            var timesRow = el('div', 'hltb-suggest-times');
+            var tMain = el('span', 'hltb-time-tag');
+            tMain.innerHTML = 'Main: <b>' + fmtHltbShortTime(item.main) + '</b>';
+            timesRow.appendChild(tMain);
+
+            var tPlus = el('span', 'hltb-time-tag');
+            tPlus.innerHTML = 'Extra: <b>' + fmtHltbShortTime(item.plus) + '</b>';
+            timesRow.appendChild(tPlus);
+
+            var t100 = el('span', 'hltb-time-tag');
+            t100.innerHTML = '100%: <b>' + fmtHltbShortTime(item.comp100) + '</b>';
+            timesRow.appendChild(t100);
+            info.appendChild(timesRow);
+
+            row.appendChild(info);
+
+            var isLinked = (hEntry && hEntry.hltbId === item.id);
+            var actionBtn = el('button', isLinked ? 'hltb-selbtn on hltb-suggest-btn' : 'refresh primary hltb-suggest-btn');
+            actionBtn.type = 'button';
+            actionBtn.textContent = isLinked ? '\u2713 Linked' : 'Link';
+            if (isLinked) {
+              actionBtn.disabled = true;
+            } else {
+              actionBtn.onclick = function () {
+                var curU = userHltbEntry(openGame.id);
+                var isSel = (curU && curU.selected) ? true : false;
+                $('mHltbInput').value = item.id;
+                toast('Linking "' + openGame.name + '" to ' + item.name + ' (#' + item.id + ')...');
+                toggleGameSelection(openGame, isSel, item.id);
+              };
+            }
+            row.appendChild(actionBtn);
+            sBox.appendChild(row);
+          })(results[ri]);
+        }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = 'Search HLTB';
+        clear(sBox);
+        sBox.appendChild(head);
+        sBox.appendChild(el('div', 'hltb-suggest-empty', 'Failed to connect to search service: ' + (err && err.message ? err.message : err)));
+      });
+  }
+
+  $('mHltbSearchBtn').onclick = searchHltbSuggestions;
+  $('mHltbSearchInp').onkeydown = function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchHltbSuggestions();
+    }
+  };
+
   $('mHltbSave').onclick = function () {
     if (!openGame) { return; }
     var v = parseInt($('mHltbInput').value, 10);
@@ -3154,26 +4095,6 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
     applyView();
     renderGrid();
   };
-  var TFMT_KEYS = { dhm: 1, hm: 1, h: 1 };
-  try { var tf = localStorage.getItem('pt-tfmt'); if (TFMT_KEYS[tf]) { state.tfmt = tf; } } catch (err) {}
-  var tfBtns = $('tfmt').getElementsByTagName('button');
-  function applyTfmt() {
-    for (var i = 0; i < tfBtns.length; i++) {
-      var on = tfBtns[i].getAttribute('data-f') === state.tfmt;
-      tfBtns[i].className = on ? 'on' : '';
-      tfBtns[i].setAttribute('aria-checked', on ? 'true' : 'false');
-    }
-  }
-  applyTfmt();
-  for (var ti = 0; ti < tfBtns.length; ti++) {
-    tfBtns[ti].onclick = function () {
-      state.tfmt = this.getAttribute('data-f');
-      try { localStorage.setItem('pt-tfmt', state.tfmt); } catch (err) {}
-      applyTfmt();
-      renderDashboard();
-      renderGrid();
-    };
-  }
   function syncClear() { $('sbox').className = state.query ? 'sbox has' : 'sbox'; }
   $('q').oninput = function () { state.query = this.value; syncClear(); renderGrid(); };
   $('q').onkeydown = function (e) { if ((e.key === 'Escape' || e.keyCode === 27) && state.query) { this.value = ''; state.query = ''; syncClear(); renderGrid(); } };

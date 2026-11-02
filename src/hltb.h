@@ -87,4 +87,8 @@ void ps5_notify(const char *fmt, ...);
 /* Triggers a PS5 on-screen notification if the HLTB session has expired */
 void hltb_notify_session_expired(void);
 
+/* Searches HowLongToBeat for matching game suggestions and returns JSON results array */
+char *hltb_search_suggestions_json(const char *query, size_t *length_out,
+                                   char *error_message, size_t error_message_size);
+
 #endif

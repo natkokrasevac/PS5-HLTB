@@ -1176,6 +1176,149 @@ static int hltb_api_search_game(http_ctx_t *hctx, const char *game_name,
     return -1;
 }
 
+char *hltb_search_suggestions_json(const char *query, size_t *length_out,
+                                   char *error_message, size_t error_message_size) {
+    http_ctx_t hctx;
+    struct timeval tv;
+    long long ts_ms;
+    char init_url[128];
+    buffer_t init_resp = {0};
+    int status = 0;
+    char token[1024] = {0};
+    char hp_key[64] = {0};
+    char hp_val[128] = {0};
+    buffer_t terms = {0};
+    buffer_t body = {0};
+    buffer_t search_resp = {0};
+    buffer_t out = {0};
+    const char *data_start;
+    const char *p;
+    int count = 0;
+
+    if(!query || !query[0]) {
+        snprintf(error_message, error_message_size, "Empty search query.");
+        return NULL;
+    }
+
+    if(http_ctx_init(&hctx, DEFAULT_USER_AGENT) != 0) {
+        snprintf(error_message, error_message_size, "HTTP initialization failed.");
+        return NULL;
+    }
+
+    gettimeofday(&tv, NULL);
+    ts_ms = (long long)tv.tv_sec * 1000LL + (long long)(tv.tv_usec / 1000);
+    snprintf(init_url, sizeof init_url,
+             "https://howlongtobeat.com/api/search/site/init?t=%lld", ts_ms);
+
+    if(http_ctx_request(&hctx, 0, init_url, NULL, NULL, NULL, &status,
+                        &init_resp, NULL, 0) != 0 ||
+       status != 200 || !init_resp.data ||
+       json_extract_string(init_resp.data, "token", token, sizeof token) != 0 ||
+       !token[0]) {
+        snprintf(error_message, error_message_size, "HLTB search init failed.");
+        free(init_resp.data);
+        http_ctx_fini(&hctx);
+        return NULL;
+    }
+    (void)json_extract_string(init_resp.data, "hpKey", hp_key, sizeof hp_key);
+    (void)json_extract_string(init_resp.data, "hpVal", hp_val, sizeof hp_val);
+    free(init_resp.data);
+
+    build_search_terms_json(query, 0, &terms);
+    if(!terms.data || terms.length < 2) {
+        http_ctx_fini(&hctx);
+        snprintf(error_message, error_message_size, "Invalid search terms.");
+        return NULL;
+    }
+
+    (void)buffer_append_str(&body, "{");
+    if(hp_key[0] && hp_val[0]) {
+        (void)buffer_append_json_string(&body, hp_key);
+        (void)buffer_append_str(&body, ":");
+        (void)buffer_append_json_string(&body, hp_val);
+        (void)buffer_append_str(&body, ",");
+    }
+    (void)buffer_append_str(&body, "\"searchType\":\"games\",\"searchTerms\":");
+    (void)buffer_append_str(&body, terms.data);
+    free(terms.data);
+    (void)buffer_append_str(
+        &body,
+        ",\"searchPage\":1,\"size\":10,\"searchOptions\":{\"games\":{\"userId\":0,"
+        "\"platform\":\"\",\"sortCategory\":\"popular\",\"rangeCategory\":\"main\","
+        "\"rangeTime\":{\"min\":null,\"max\":null},\"gameplay\":{\"perspective\":\"\","
+        "\"flow\":\"\",\"genre\":\"\",\"difficulty\":\"\"},\"rangeYear\":{\"min\":\"\","
+        "\"max\":\"\"},\"modifier\":\"\"},\"users\":{\"sortCategory\":\"postcount\"},"
+        "\"filter\":\"\",\"sort\":0,\"randomizer\":0},\"useCache\":true}");
+
+    if(!body.data ||
+       http_ctx_request_ex(&hctx, 1, "https://howlongtobeat.com/api/search/site",
+                           body.data, NULL, token, hp_key, hp_val, &status,
+                           &search_resp, NULL, 0) != 0 ||
+       status != 200 || !search_resp.data) {
+        snprintf(error_message, error_message_size, "HLTB search request failed (HTTP %d).", status);
+        free(body.data);
+        free(search_resp.data);
+        http_ctx_fini(&hctx);
+        return NULL;
+    }
+    free(body.data);
+    http_ctx_fini(&hctx);
+
+    if(buffer_append_str(&out, "{\"results\":[") != 0) {
+        free(search_resp.data);
+        return NULL;
+    }
+
+    data_start = find_json_key(search_resp.data, "data");
+    p = data_start ? data_start : search_resp.data;
+
+    while(p && (p = strstr(p, "\"game_id\"")) != NULL && count < 6) {
+        long long gid = 0;
+        char name[256] = {0};
+        char img[256] = {0};
+        long long c_main = 0, c_plus = 0, c_100 = 0, c_all = 0, year = 0;
+        char chunk[1024];
+
+        if(json_extract_int64(p, "game_id", &gid) == 0 && gid > 0) {
+            (void)json_extract_string(p, "game_name", name, sizeof name);
+            (void)json_extract_int64(p, "comp_main", &c_main);
+            (void)json_extract_int64(p, "comp_plus", &c_plus);
+            (void)json_extract_int64(p, "comp_100", &c_100);
+            (void)json_extract_int64(p, "comp_all", &c_all);
+            (void)json_extract_int64(p, "release_world", &year);
+            (void)json_extract_string(p, "game_image", img, sizeof img);
+
+            if(count > 0 && buffer_append_str(&out, ",") != 0) break;
+
+            snprintf(chunk, sizeof chunk, "{\"id\":%lld,\"name\":", gid);
+            if(buffer_append_str(&out, chunk) != 0 ||
+               buffer_append_json_string(&out, name) != 0) break;
+
+            snprintf(chunk, sizeof chunk,
+                     ",\"main\":%lld,\"plus\":%lld,\"comp100\":%lld,\"all\":%lld,\"year\":%lld,\"image\":",
+                     c_main, c_plus, c_100, c_all, year);
+            if(buffer_append_str(&out, chunk) != 0 ||
+               buffer_append_json_string(&out, img) != 0 ||
+               buffer_append_str(&out, "}") != 0) break;
+
+            count++;
+        }
+        p += 9;
+    }
+
+    free(search_resp.data);
+
+    if(buffer_append_str(&out, "]}") != 0) {
+        free(out.data);
+        return NULL;
+    }
+
+    if(length_out) {
+        *length_out = out.length;
+    }
+    return out.data;
+}
+
 typedef struct {
     int playing;
     int backlog;
@@ -2106,6 +2249,98 @@ int hltb_select_game(const char *hltb_db_path, const char *ps5_user_id,
     if(!ps5_user_id || !ps5_user_id[0] || !title_id || !title_id[0]) {
         snprintf(error_message, error_message_size, "Missing user or title ID.");
         return -1;
+    }
+
+    /* Batch selection (comma-separated IDs or "ALL") */
+    if(strcmp(title_id, "ALL") == 0 || strchr(title_id, ',') != NULL) {
+        if(open_hltb_db(hltb_db_path, &db, error_message, error_message_size) != 0) {
+            return -1;
+        }
+        if(strcmp(title_id, "ALL") == 0) {
+            if(sqlite3_prepare_v2(
+                   db,
+                   "UPDATE hltb_games SET "
+                   "selected = ?2, "
+                   "synced_seconds = CASE WHEN selected = 0 AND ?2 = 1 THEN -1 ELSE synced_seconds END, "
+                   "updated_at = datetime('now', 'localtime') "
+                   "WHERE user_id = ?1",
+                   -1, &stmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, ps5_user_id, -1, SQLITE_STATIC);
+                sqlite3_bind_int(stmt, 2, selected ? 1 : 0);
+                sqlite3_step(stmt);
+                sqlite3_finalize(stmt);
+            }
+            sqlite3_close(db);
+            return 0;
+        }
+
+        /* Comma-separated list of title IDs */
+        sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, NULL);
+
+        sqlite3_stmt *stmt_update = NULL;
+        sqlite3_stmt *stmt_insert = NULL;
+
+        const char *sql_update =
+            "UPDATE hltb_games SET "
+            "selected = ?3, "
+            "synced_seconds = CASE WHEN selected = 0 AND ?3 = 1 THEN -1 ELSE synced_seconds END, "
+            "updated_at = datetime('now', 'localtime') "
+            "WHERE user_id = ?1 AND title_id = ?2";
+
+        const char *sql_insert =
+            "INSERT OR IGNORE INTO hltb_games "
+            "(user_id, title_id, selected, hltb_title, hltb_game_id, list_type, synced_seconds, "
+            "comp_main, comp_plus, comp_100, comp_all, updated_at) "
+            "VALUES (?1, ?2, ?3, "
+            "COALESCE((SELECT hltb_title FROM hltb_games WHERE title_id = ?2 AND hltb_title != '' LIMIT 1), ''), "
+            "COALESCE((SELECT hltb_game_id FROM hltb_games WHERE title_id = ?2 AND hltb_game_id > 0 LIMIT 1), 0), "
+            "'playing', -1, "
+            "COALESCE((SELECT comp_main FROM hltb_games WHERE title_id = ?2 AND comp_main > 0 LIMIT 1), 0), "
+            "COALESCE((SELECT comp_plus FROM hltb_games WHERE title_id = ?2 AND comp_plus > 0 LIMIT 1), 0), "
+            "COALESCE((SELECT comp_100 FROM hltb_games WHERE title_id = ?2 AND comp_100 > 0 LIMIT 1), 0), "
+            "COALESCE((SELECT comp_all FROM hltb_games WHERE title_id = ?2 AND comp_all > 0 LIMIT 1), 0), "
+            "datetime('now', 'localtime'))";
+
+        sqlite3_prepare_v2(db, sql_update, -1, &stmt_update, NULL);
+        sqlite3_prepare_v2(db, sql_insert, -1, &stmt_insert, NULL);
+
+        const char *p = title_id;
+        while(*p) {
+            char tok[32];
+            size_t len = 0;
+            while(*p == ' ' || *p == ',') p++;
+            if(!*p) break;
+            while(*p && *p != ',' && *p != ' ' && len + 1 < sizeof(tok)) {
+                tok[len++] = *p++;
+            }
+            tok[len] = '\0';
+            while(*p && *p != ',') p++;
+            if(*p == ',') p++;
+
+            if(tok[0] && strncmp(tok, "PPSA9", 5) != 0 && strncmp(tok, "CUSA9", 5) != 0) {
+                if(stmt_update) {
+                    sqlite3_reset(stmt_update);
+                    sqlite3_bind_text(stmt_update, 1, ps5_user_id, -1, SQLITE_STATIC);
+                    sqlite3_bind_text(stmt_update, 2, tok, -1, SQLITE_STATIC);
+                    sqlite3_bind_int(stmt_update, 3, selected ? 1 : 0);
+                    sqlite3_step(stmt_update);
+                }
+                if(selected && sqlite3_changes(db) == 0 && stmt_insert) {
+                    sqlite3_reset(stmt_insert);
+                    sqlite3_bind_text(stmt_insert, 1, ps5_user_id, -1, SQLITE_STATIC);
+                    sqlite3_bind_text(stmt_insert, 2, tok, -1, SQLITE_STATIC);
+                    sqlite3_bind_int(stmt_insert, 3, 1);
+                    sqlite3_step(stmt_insert);
+                }
+            }
+        }
+
+        if(stmt_update) sqlite3_finalize(stmt_update);
+        if(stmt_insert) sqlite3_finalize(stmt_insert);
+
+        sqlite3_exec(db, "COMMIT", NULL, NULL, NULL);
+        sqlite3_close(db);
+        return 0;
     }
 
     /* Homebrew apps are not games and cannot be synced to HowLongToBeat */
