@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/Resources/app_banner.png" alt="PS5-HLTB Banner" width="100%">
+  <img src="src/Resources/app_banner_split.png" alt="PS5-HLTB Banner" width="100%">
 </p>
 
 # PS5-HLTB
