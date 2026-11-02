@@ -149,6 +149,21 @@ button.pill svg { width: .95rem; height: .95rem; margin-right: .38rem; color: va
 .side-access-addr { font-family: "SFMono-Regular", Consolas, monospace; font-size: .88rem; font-weight: 700; color: var(--text); word-break: break-all; user-select: all; }
 .side-access-sub { margin-top: .1rem; font-size: .69rem; color: var(--muted); line-height: 1.25; }
 
+/* sidebar media tab shortcut */
+.side-shortcut { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: .4rem; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); box-sizing: border-box; transition: background .12s, border-color .12s; }
+.side-shortcut:hover { border-color: var(--line-strong); }
+.side-shortcut-head { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .35rem; }
+.side-shortcut-icon { display: inline-flex; align-items: center; justify-content: center; color: var(--accent); }
+.shortcut-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; width: 100%; padding: .42rem .75rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: var(--on-accent); font-size: .8rem; font-weight: 700; cursor: pointer; transition: opacity .15s, background .15s, border-color .15s, transform .08s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.shortcut-btn:hover { opacity: .92; }
+.shortcut-btn:active { transform: scale(.98); }
+.shortcut-btn.installed { background: rgba(114, 237, 176, .16); border-color: rgba(114, 237, 176, .45); color: var(--green); cursor: pointer; }
+.shortcut-btn.installed:hover { background: rgba(114, 237, 176, .24); border-color: rgba(114, 237, 176, .65); }
+.shortcut-btn.busy { opacity: .6; pointer-events: none; }
+.side-shortcut-desc { margin-top: .32rem; font-size: .69rem; color: var(--muted); line-height: 1.25; }
+.shortcut-rm-btn { margin-top: .3rem; background: transparent; border: 0; padding: .15rem .35rem; color: var(--muted); font-size: .68rem; text-decoration: underline; cursor: pointer; transition: color .12s; }
+.shortcut-rm-btn:hover { color: #ff6b6b; }
+
 /* time format segmented control */
 .seg { display: inline-flex; margin-right: .624rem; padding: .18rem; background: var(--seg-bg); border: 1px solid var(--seg-line); border-radius: 999px; }
 .seg button { padding: .16rem .75rem; color: var(--seg-text); font-size: .78rem; font-weight: 700; letter-spacing: .04em; line-height: 1.4; white-space: nowrap; cursor: pointer; background: transparent; border: 0; border-radius: 999px; }
@@ -1355,6 +1370,20 @@ input[type=number] { -moz-appearance: textfield; }
               <div class="side-access-addr" id="sideAddr">127.0.0.1:7788</div>
               <div class="side-access-sub">Scan QR code with phone to control &amp; sync HLTB</div>
             </div>
+          </div>
+          <div class="side-shortcut" id="sideShortcut">
+            <div class="side-shortcut-head">
+              <span class="side-shortcut-icon">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon></svg>
+              </span>
+              <span>PS5 Media Shortcut</span>
+            </div>
+            <button class="shortcut-btn" id="btnShortcutAction" type="button">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="shortcutBtnIcon"><path d="M12 5v14M5 12h14"></path></svg>
+              <span id="shortcutBtnText">Add to Media Tab</span>
+            </button>
+            <div class="side-shortcut-desc" id="shortcutDesc">Open dashboard directly from PS5 home screen</div>
+            <button class="shortcut-rm-btn" id="btnShortcutRemove" type="button" style="display:none">Remove Shortcut</button>
           </div>
         </div>
       </div>
@@ -4017,6 +4046,7 @@ input[type=number] { -moz-appearance: textfield; }
         if ($('sideAddr')) { $('sideAddr').textContent = hostPort; }
         serverUrl = 'http://' + hostPort;
         renderSideAccess();
+        refreshShortcutStatus();
         load();
         startSyncWatcher();
       })
@@ -4026,8 +4056,104 @@ input[type=number] { -moz-appearance: textfield; }
         serverUrl = location.origin;
         setCredit('Mahdi Hosseini', 'https://github.com/natkokrasevac/PS5-HLTB');
         renderSideAccess();
+        refreshShortcutStatus();
         load();
         startSyncWatcher();
+      });
+  }
+
+  /* ---------- PS5 Media tab shortcut ---------- */
+  var isShortcutInstalled = false;
+  function refreshShortcutStatus() {
+    fetch('/api/shortcut/status', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        setShortcutUI(!!d.installed);
+      })
+      .catch(function () {});
+  }
+
+  function setShortcutUI(installed) {
+    isShortcutInstalled = installed;
+    var btn = $('btnShortcutAction');
+    var txt = $('shortcutBtnText');
+    var icon = $('shortcutBtnIcon');
+    var desc = $('shortcutDesc');
+    var rmBtn = $('btnShortcutRemove');
+
+    if (!btn || !txt) return;
+
+    btn.classList.remove('busy');
+    if (installed) {
+      btn.className = 'shortcut-btn installed';
+      txt.textContent = 'Shortcut in Media Tab';
+      icon.innerHTML = '<path d="M20 6L9 17l-5-5"></path>';
+      desc.textContent = 'Tile active on PS5 home screen (Media tab)';
+      if (rmBtn) { rmBtn.style.display = 'inline-block'; }
+    } else {
+      btn.className = 'shortcut-btn';
+      txt.textContent = 'Add to Media Tab';
+      icon.innerHTML = '<path d="M12 5v14M5 12h14"></path>';
+      desc.textContent = 'Open dashboard directly from PS5 home screen';
+      if (rmBtn) { rmBtn.style.display = 'none'; }
+    }
+  }
+
+  function onShortcutClick() {
+    var btn = $('btnShortcutAction');
+    if (!btn || btn.classList.contains('busy')) return;
+    btn.classList.add('busy');
+
+    fetch('/api/shortcut/install', {
+      method: 'POST',
+      headers: csrfHeaders()
+    })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (e) {
+            throw new Error((e && e.error) || 'Failed to install shortcut');
+          });
+        }
+        return r.json();
+      })
+      .then(function () {
+        setShortcutUI(true);
+        toast('PS5-HLTB shortcut added to Media tab!');
+      })
+      .catch(function (e) {
+        btn.classList.remove('busy');
+        toast((e && e.message) ? e.message : 'Failed to add shortcut');
+      });
+  }
+
+  function onShortcutRemoveClick() {
+    var btn = $('btnShortcutAction');
+    var rmBtn = $('btnShortcutRemove');
+    if (!btn || btn.classList.contains('busy')) return;
+    btn.classList.add('busy');
+    if (rmBtn) { rmBtn.textContent = 'Removing...'; }
+
+    fetch('/api/shortcut/remove', {
+      method: 'POST',
+      headers: csrfHeaders()
+    })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (e) {
+            throw new Error((e && e.error) || 'Failed to remove shortcut');
+          });
+        }
+        return r.json();
+      })
+      .then(function () {
+        setShortcutUI(false);
+        if (rmBtn) { rmBtn.textContent = 'Remove Shortcut'; }
+        toast('Shortcut removed from Media tab');
+      })
+      .catch(function (e) {
+        btn.classList.remove('busy');
+        if (rmBtn) { rmBtn.textContent = 'Remove Shortcut'; }
+        toast((e && e.message) ? e.message : 'Failed to remove shortcut');
       });
   }
 
@@ -4116,6 +4242,9 @@ input[type=number] { -moz-appearance: textfield; }
       else if (openGame) { closeDetail(); }
     }
   };
+
+  if ($('btnShortcutAction')) { $('btnShortcutAction').onclick = onShortcutClick; }
+  if ($('btnShortcutRemove')) { $('btnShortcutRemove').onclick = onShortcutRemoveClick; }
 
   loadInfo();
 })();

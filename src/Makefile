@@ -10,15 +10,15 @@ endif
 PAYLOAD_VERSION ?= v1.1.0
 ELF := PS5-HLTB-$(PAYLOAD_VERSION).elf
 
-SOURCES := main.c games.c hltb.c server.c sqlite/sqlite3.c
-HEADERS := config.h games.h hltb.h server.h sqlite/sqlite3.h
+SOURCES := main.c games.c hltb.c server.c shortcut.c sqlite/sqlite3.c
+HEADERS := config.h games.h hltb.h server.h shortcut.h sqlite/sqlite3.h
 ASSETS  := web/index.html resources/ps4_logo.webp resources/ps5_logo.png resources/app_icon_sm.png
 
 CPPFLAGS := -DPAYLOAD_VERSION=\"$(PAYLOAD_VERSION)\" \
             -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION \
             -DSQLITE_OMIT_SHARED_CACHE -DSQLITE_TEMP_STORE=2
 CFLAGS := -Wall -Werror -Os
-LDLIBS := -lkernel_sys -lSceSysmodule -lSceUserService -lSceSystemService -lSceNet -lSceSsl -lSceHttp -lSceHttp2
+LDLIBS := -lkernel_sys -lSceSysmodule -lSceUserService -lSceSystemService -lSceNet -lSceSsl -lSceHttp -lSceHttp2 -lSceIpmi -lSceAppInstUtil
 
 .PHONY: all clean test debug
 

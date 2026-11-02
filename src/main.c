@@ -32,6 +32,7 @@
 #include "games.h"
 #include "hltb.h"
 #include "server.h"
+#include "shortcut.h"
 
 /*
  * Embed web/index.html into the payload at build time (no external tools
@@ -401,10 +402,83 @@ static void handle_hltb_search(int fd, const server_request_t *req,
     free(json);
 }
 
+/* GET /api/shortcut/status */
+static void handle_shortcut_status(int fd, const server_request_t *req,
+                                   const context_t *ctx) {
+    (void)ctx;
+    if(strcmp(req->method, "GET") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    int installed = shortcut_is_installed();
+    char resp[64];
+    snprintf(resp, sizeof resp, "{\"installed\":%s}", installed ? "true" : "false");
+    server_send(fd, 200, "application/json; charset=utf-8", resp, strlen(resp), 0);
+}
+
+/* POST /api/shortcut/install */
+static void handle_shortcut_install(int fd, const server_request_t *req,
+                                    const context_t *ctx) {
+    char error[256] = {0};
+
+    if(strcmp(req->method, "POST") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    if(!req->has_custom_header) {
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
+        return;
+    }
+
+    if(shortcut_install(ctx->port, res_app_icon, res_app_icon_size, error, sizeof error) != 0) {
+        send_json_error(fd, 500, error[0] ? error : "Failed to install shortcut.");
+        return;
+    }
+
+    ps5_notify("PS5-HLTB\nShortcut added to Media tab!");
+    server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true,\"installed\":true}", 28, 0);
+}
+
+/* POST /api/shortcut/remove */
+static void handle_shortcut_remove(int fd, const server_request_t *req,
+                                   const context_t *ctx) {
+    char error[256] = {0};
+    (void)ctx;
+
+    if(strcmp(req->method, "POST") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    if(!req->has_custom_header) {
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
+        return;
+    }
+
+    if(shortcut_uninstall(error, sizeof error) != 0) {
+        send_json_error(fd, 500, error[0] ? error : "Failed to remove shortcut.");
+        return;
+    }
+
+    ps5_notify("PS5-HLTB\nShortcut removed from Media tab");
+    server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true,\"installed\":false}", 29, 0);
+}
+
 static void handle_request(int fd, const server_request_t *req, void *user) {
     const context_t *ctx = (const context_t *)user;
     const char *path = req->path;
 
+    if(strcmp(path, "/api/shortcut/status") == 0) {
+        handle_shortcut_status(fd, req, ctx);
+        return;
+    }
+    if(strcmp(path, "/api/shortcut/install") == 0) {
+        handle_shortcut_install(fd, req, ctx);
+        return;
+    }
+    if(strcmp(path, "/api/shortcut/remove") == 0) {
+        handle_shortcut_remove(fd, req, ctx);
+        return;
+    }
     if(strcmp(path, "/api/playtime") == 0) {
         handle_set_playtime(fd, req, ctx);
         return;
