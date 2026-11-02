@@ -98,7 +98,7 @@ No local SDK installation is required; Docker compiles everything inside an isol
    make clean all
    ```
 
-The compiled output is `PS5-HLTB-v1.0.0.elf` (and `PS5-HLTB.elf`).
+The compiled output is `PS5-HLTB-v1.2.0.elf` (and `PS5-HLTB.elf`).
 
 ## Credits & Acknowledgments
 
