@@ -39,6 +39,10 @@ Open it on the console's own browser or from a phone / laptop on the same networ
   - Search by name or title ID, multi-platform filter (PS5, PS4, Homebrew), persistent sort settings.
   - Dark and light themes.
   - Edit play time per user with backup (`/data/playtime_app.db.bak`).
+- **Console & System Integration**:
+  - **PS5 Media Tab Shortcut**: One-click install of a direct home screen tile (`HLTB00001`) to launch the dashboard without Payload Manager.
+  - **Native System Notifications**: On-screen TV debug popups for payload readiness, Rest Mode resume, HLTB sync updates, and session expiration alerts.
+  - **Rest Mode Resilience & Duplicate Guard**: Automatic socket recovery across console Rest Mode cycles, plus active port/PID checks to prevent duplicate processes.
 
 ## Screenshots
 
