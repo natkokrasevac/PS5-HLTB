@@ -22,6 +22,8 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 #include <ps5/kernel.h>
 #include <ps5/klog.h>
@@ -538,40 +540,62 @@ static void launch_ps5_browser(int port) {
     (void)sceSystemServiceLaunchWebBrowser(url, NULL);
 }
 
-static void terminate_previous_instance(void) {
-    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0};
-    size_t buf_size = 0;
-    void *buf = NULL;
-    pid_t self = getpid();
-    int killed = 0;
+static int is_hltb_already_running(int port) {
+    int sock;
+    struct sockaddr_in addr;
+    struct timeval tv;
+    int res;
 
-    if(sysctl(mib, 4, NULL, &buf_size, NULL, 0) == 0 && buf_size > 0) {
-        buf = malloc(buf_size);
-        if(buf && sysctl(mib, 4, buf, &buf_size, NULL, 0) == 0) {
-            char *ptr = (char *)buf;
-            char *end = ptr + buf_size;
-            while(ptr < end) {
-                struct kinfo_proc *ki = (struct kinfo_proc *)ptr;
-                if(ki->ki_structsize <= 0) {
-                    break;
-                }
-                ptr += ki->ki_structsize;
-                if(ki->ki_pid != self && ki->ki_pid > 1 &&
-                   (strcmp(ki->ki_tdname, PAYLOAD_PROCESS_NAME) == 0 ||
-                    strcmp(ki->ki_comm, PAYLOAD_PROCESS_NAME) == 0 ||
-                    strcmp(ki->ki_tdname, "PlayTime.elf") == 0 ||
-                    strcmp(ki->ki_comm, "PlayTime.elf") == 0)) {
-                    klog_printf("[PS5-HLTB] Killing previous instance %s (PID=%d)\n",
-                                ki->ki_tdname, (int)ki->ki_pid);
-                    kill(ki->ki_pid, SIGKILL);
-                    killed = 1;
-                }
-            }
-        }
-        free(buf);
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(sock < 0) {
+        return 0;
     }
-    if(killed) {
-        usleep(400000);
+
+    memset(&addr, 0, sizeof addr);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons((unsigned short)port);
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 300000; /* 300ms probe timeout */
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
+
+    res = connect(sock, (struct sockaddr *)&addr, sizeof addr);
+    if(res == 0) {
+        const char probe[] = "GET /api/info HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n";
+        (void)write(sock, probe, sizeof(probe) - 1);
+        close(sock);
+        return 1;
+    }
+
+    close(sock);
+    return 0;
+}
+
+static int check_pid_file(void) {
+    FILE *f = fopen("/data/ps5_hltb.pid", "r");
+    if(!f) {
+        return 0;
+    }
+    int pid = 0;
+    if(fscanf(f, "%d", &pid) == 1 && pid > 1 && pid != (int)getpid()) {
+        fclose(f);
+        if(kill((pid_t)pid, 0) == 0) {
+            return pid;
+        }
+        unlink("/data/ps5_hltb.pid");
+        return 0;
+    }
+    fclose(f);
+    return 0;
+}
+
+static void write_pid_file(void) {
+    FILE *f = fopen("/data/ps5_hltb.pid", "w");
+    if(f) {
+        fprintf(f, "%d\n", (int)getpid());
+        fclose(f);
     }
 }
 
@@ -580,19 +604,26 @@ int main(void) {
     int listen_fd = -1;
     int attempt;
 
-    terminate_previous_instance();
-
     /* Prevent signal drops (e.g. SIGHUP on network disconnect) from killing the payload */
     signal(SIGPIPE, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
-
-    /* Name shown in the running-process list (see config.h). */
-    syscall(SYS_thr_set_name, -1, PAYLOAD_PROCESS_NAME);
 
     ctx.database_path = APP_DB_PATH;
     ctx.hltb_database_path = HLTB_DB_PATH;
     ctx.port = PS5_HLTB_PORT;
     ctx.firmware_version = kernel_get_fw_version();
+
+    /* Check if an instance of PS5-HLTB is already active */
+    if(is_hltb_already_running(ctx.port) || check_pid_file() > 0) {
+        klog_printf("[PS5-HLTB] PS5-HLTB is already running on port %d (PID %d exiting)\n",
+                    ctx.port, (int)getpid());
+        ps5_notify("PS5-HLTB is already running\nOpening browser...");
+        launch_ps5_browser(ctx.port);
+        return 0;
+    }
+
+    /* Name shown in the running-process list (see config.h). */
+    syscall(SYS_thr_set_name, -1, PAYLOAD_PROCESS_NAME);
 
     klog_printf("[PS5-HLTB] Starting %s %s (PID=%d, port=%d)\n",
                 PS5_HLTB_APP_NAME, PAYLOAD_VERSION, (int)getpid(), ctx.port);
@@ -602,23 +633,22 @@ int main(void) {
     games_set_excluded(EXCLUDED_TITLES,
                        sizeof EXCLUDED_TITLES / sizeof EXCLUDED_TITLES[0]);
 
-    for(attempt = 0; attempt < 6; attempt++) {
+    for(attempt = 0; attempt < 3; attempt++) {
         listen_fd = server_start(ctx.port);
         if(listen_fd >= 0) {
             break;
         }
-        terminate_previous_instance();
-        usleep(250000);
+        usleep(200000);
     }
     if(listen_fd < 0) {
-        char err[256];
-        klog_printf("[PS5-HLTB] Port %d still busy; triggering sync & browser\n",
+        klog_printf("[PS5-HLTB] Port %d still busy; another instance is running. Opening browser\n",
                     ctx.port);
-        (void)hltb_sync_selected(ctx.database_path, ctx.hltb_database_path, 0,
-                                 NULL, err, sizeof err);
+        ps5_notify("PS5-HLTB is already running\nOpening browser...");
         launch_ps5_browser(ctx.port);
         return 0;
     }
+
+    write_pid_file();
 
     klog_printf("[PS5-HLTB] HTTP server listening on port %d (fd=%d)\n",
                 ctx.port, listen_fd);

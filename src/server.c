@@ -150,9 +150,6 @@ int server_start(int port) {
         close(fd);
         return -1;
     }
-#ifdef SO_REUSEPORT
-    (void)setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof opt);
-#endif
 
     memset(&addr, 0, sizeof addr);
     addr.sin_family = AF_INET;
