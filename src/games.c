@@ -111,18 +111,43 @@ static int buffer_append_json_string(buffer_t *b, const char *text) {
 }
 
 int games_is_valid_title_id(const char *title_id) {
+    size_t length;
     size_t i;
 
-    if(!title_id || strlen(title_id) != 9) {
+    if(!title_id) {
         return 0;
     }
-    for(i = 0; i < 9; i++) {
+    length = strlen(title_id);
+    if(length < 4 || length > 16) {
+        return 0;
+    }
+    for(i = 0; i < length; i++) {
         char c = title_id[i];
-        if(!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+        if(!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_')) {
             return 0;
         }
     }
     return 1;
+}
+
+const char *games_default_platform(const char *title_id) {
+    if(!title_id) {
+        return "Apps";
+    }
+    /* PPSA9... and CUSA9... are Apps */
+    if(strncmp(title_id, "PPSA9", 5) == 0 || strncmp(title_id, "CUSA9", 5) == 0) {
+        return "Apps";
+    }
+    /* PPSA and PPST are PS5 */
+    if(strncmp(title_id, "PPSA", 4) == 0 || strncmp(title_id, "PPST", 4) == 0) {
+        return "PS5";
+    }
+    /* CUSA and CUST are PS4 */
+    if(strncmp(title_id, "CUSA", 4) == 0 || strncmp(title_id, "CUST", 4) == 0) {
+        return "PS4";
+    }
+    /* Everything else (FAKE, HLTB, ITEM, custom IDs) defaults to Apps */
+    return "Apps";
 }
 
 static void normalize_title_id(const char *in, char *out, size_t out_size) {
@@ -135,23 +160,18 @@ static void normalize_title_id(const char *in, char *out, size_t out_size) {
 }
 
 int games_is_listed_title(const char *title_id) {
-    char id[16];
+    char id[32];
     size_t i;
 
     normalize_title_id(title_id, id, sizeof id);
     if(!games_is_valid_title_id(id)) {
         return 0;
     }
-    if(strncmp(id, "CUSA", 4) != 0 && strncmp(id, "PPSA", 4) != 0) {
+    if(strncmp(id, "NPXS", 4) == 0) {
         return 0;
     }
-    for(i = 4; i < 9; i++) {
-        if(id[i] < '0' || id[i] > '9') {
-            return 0;
-        }
-    }
     for(i = 0; i < excluded_count; i++) {
-        char excluded[16];
+        char excluded[32];
 
         normalize_title_id(excluded_titles[i], excluded, sizeof excluded);
         if(strcmp(id, excluded) == 0) {
@@ -265,7 +285,6 @@ static int load_games(sqlite3 *db, game_t **out_games, size_t *out_count,
                       char *error_message, size_t error_message_size) {
     static const char query[] =
         "SELECT titleId, MAX(titleName) FROM tbl_contentinfo "
-        "WHERE titleId LIKE 'CUSA%' OR titleId LIKE 'PPSA%' "
         "GROUP BY titleId ORDER BY MAX(titleName) COLLATE NOCASE, titleId";
     sqlite3_stmt *statement = NULL;
     game_t *games = NULL;
@@ -282,7 +301,7 @@ static int load_games(sqlite3 *db, game_t **out_games, size_t *out_count,
     while((rc = sqlite3_step(statement)) == SQLITE_ROW) {
         const unsigned char *raw_id = sqlite3_column_text(statement, 0);
         const unsigned char *raw_name = sqlite3_column_text(statement, 1);
-        char id[16];
+        char id[32];
         game_t *game;
 
         if(!raw_id) {
@@ -361,8 +380,7 @@ static int load_play_time(sqlite3 *db, const char *table, size_t user,
                           char *error_message, size_t error_message_size) {
     sqlite3_stmt *statement = NULL;
     char *sql = sqlite3_mprintf(
-        "SELECT titleId, playedTimeOnConsole, lastPlayedDate FROM \"%w\" "
-        "WHERE titleId LIKE 'CUSA%%' OR titleId LIKE 'PPSA%%'", table);
+        "SELECT titleId, playedTimeOnConsole, lastPlayedDate FROM \"%w\"", table);
     int rc;
 
     if(!sql) {
@@ -379,7 +397,7 @@ static int load_play_time(sqlite3 *db, const char *table, size_t user,
 
     while((rc = sqlite3_step(statement)) == SQLITE_ROW) {
         const unsigned char *raw_id = sqlite3_column_text(statement, 0);
-        char id[16];
+        char id[32];
         int index;
         sqlite3_int64 played;
         const unsigned char *last;
@@ -409,24 +427,68 @@ static int load_play_time(sqlite3 *db, const char *table, size_t user,
     return 0;
 }
 
+typedef struct {
+    char id[32];
+    char category[16];
+} title_cat_override_t;
+
 static int append_json(buffer_t *out, const game_t *games, size_t count,
-                       char tables[][64], size_t user_count) {
+                       char tables[][64], size_t user_count,
+                       const char *hltb_database_path) {
     char number[48];
     size_t i;
     size_t u;
+    title_cat_override_t *overrides = NULL;
+    size_t override_count = 0;
+    size_t override_capacity = 0;
+
+    if(hltb_database_path && hltb_database_path[0]) {
+        sqlite3 *hdb = NULL;
+        if(sqlite3_open_v2(hltb_database_path, &hdb,
+                           SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL) == SQLITE_OK) {
+            sqlite3_stmt *hstmt = NULL;
+            if(sqlite3_prepare_v2(hdb, "SELECT title_id, category FROM title_categories",
+                                  -1, &hstmt, NULL) == SQLITE_OK) {
+                while(sqlite3_step(hstmt) == SQLITE_ROW) {
+                    const unsigned char *tid = sqlite3_column_text(hstmt, 0);
+                    const unsigned char *cat = sqlite3_column_text(hstmt, 1);
+                    if(tid && cat && tid[0] && cat[0]) {
+                        if(override_count == override_capacity) {
+                            size_t new_cap = override_capacity ? override_capacity * 2 : 16;
+                            title_cat_override_t *grown = (title_cat_override_t *)realloc(overrides, new_cap * sizeof *overrides);
+                            if(grown) {
+                                overrides = grown;
+                                override_capacity = new_cap;
+                            }
+                        }
+                        if(override_count < override_capacity) {
+                            snprintf(overrides[override_count].id, sizeof overrides[override_count].id, "%s", tid);
+                            snprintf(overrides[override_count].category, sizeof overrides[override_count].category, "%s", cat);
+                            override_count++;
+                        }
+                    }
+                }
+                sqlite3_finalize(hstmt);
+            }
+            sqlite3_close(hdb);
+        }
+    }
 
     snprintf(number, sizeof number, "{\"unitSeconds\":%d,\"users\":[",
              PS5_HLTB_UNIT_SECONDS);
     if(buffer_append_str(out, number) != 0) {
+        free(overrides);
         return -1;
     }
     for(u = 0; u < user_count; u++) {
         if((u > 0 && buffer_append_str(out, ",") != 0) ||
            buffer_append_json_string(out, tables[u] + strlen(USER_TABLE_PREFIX)) != 0) {
+            free(overrides);
             return -1;
         }
     }
     if(buffer_append_str(out, "],\"names\":[") != 0) {
+        free(overrides);
         return -1;
     }
     for(u = 0; u < user_count; u++) {
@@ -439,20 +501,37 @@ static int append_json(buffer_t *out, const game_t *games, size_t count,
         if((u > 0 && buffer_append_str(out, ",") != 0) ||
            (known ? buffer_append_json_string(out, name)
                   : buffer_append_str(out, "null")) != 0) {
+            free(overrides);
             return -1;
         }
     }
     if(buffer_append_str(out, "],\"games\":[") != 0) {
+        free(overrides);
         return -1;
     }
 
     for(i = 0; i < count; i++) {
         const game_t *game = &games[i];
+        const char *platform = NULL;
+        int is_custom = 0;
+        char platform_str[64];
+        size_t o;
 
-        int is_hb = (strncmp(game->id, "PPSA9", 5) == 0 || strncmp(game->id, "CUSA9", 5) == 0);
-        const char *platform_str = is_hb ? ",\"platform\":\"HOMEBREW\""
-                                         : (game->id[0] == 'P' ? ",\"platform\":\"PS5\""
-                                                               : ",\"platform\":\"PS4\"");
+        for(o = 0; o < override_count; o++) {
+            if(strcmp(overrides[o].id, game->id) == 0) {
+                platform = overrides[o].category;
+                if(strcmp(platform, "HOMEBREW") == 0) {
+                    platform = "Apps";
+                }
+                is_custom = 1;
+                break;
+            }
+        }
+        if(!platform) {
+            platform = games_default_platform(game->id);
+        }
+        snprintf(platform_str, sizeof platform_str, ",\"platform\":\"%s\"%s",
+                 platform, is_custom ? ",\"customCat\":true" : "");
 
         if((i > 0 && buffer_append_str(out, ",") != 0) ||
            buffer_append_str(out, "{\"id\":") != 0 ||
@@ -461,16 +540,19 @@ static int append_json(buffer_t *out, const game_t *games, size_t count,
            buffer_append_json_string(out, game->name) != 0 ||
            buffer_append_str(out, platform_str) != 0 ||
            buffer_append_str(out, ",\"played\":[") != 0) {
+            free(overrides);
             return -1;
         }
         for(u = 0; u < user_count; u++) {
             snprintf(number, sizeof number, "%s%lld", u ? "," : "",
                      (long long)game->played[u]);
             if(buffer_append_str(out, number) != 0) {
+                free(overrides);
                 return -1;
             }
         }
         if(buffer_append_str(out, "],\"last\":[") != 0) {
+            free(overrides);
             return -1;
         }
         for(u = 0; u < user_count; u++) {
@@ -478,29 +560,34 @@ static int append_json(buffer_t *out, const game_t *games, size_t count,
                (game->last[u][0]
                     ? buffer_append_json_string(out, game->last[u])
                     : buffer_append_str(out, "null")) != 0) {
+                free(overrides);
                 return -1;
             }
         }
         if(buffer_append_str(out, "],\"has\":[") != 0) {
+            free(overrides);
             return -1;
         }
         for(u = 0; u < user_count; u++) {
             if(buffer_append_str(out, game->has[u] ? (u ? ",1" : "1")
                                                     : (u ? ",0" : "0")) != 0) {
+                free(overrides);
                 return -1;
             }
         }
         if(buffer_append_str(out, "]}") != 0) {
+            free(overrides);
             return -1;
         }
     }
 
+    free(overrides);
     snprintf(number, sizeof number, "],\"count\":%zu}", count);
     return buffer_append_str(out, number);
 }
 
-char *games_list_json(const char *database_path, size_t *length,
-                      char *error_message, size_t error_message_size) {
+char *games_list_json(const char *database_path, const char *hltb_database_path,
+                      size_t *length, char *error_message, size_t error_message_size) {
     char tables[PS5_HLTB_MAX_USERS][64];
     size_t user_count = 0;
     sqlite3 *db = NULL;
@@ -540,7 +627,7 @@ char *games_list_json(const char *database_path, size_t *length,
         }
     }
 
-    if(append_json(&out, games, game_count, tables, user_count) != 0) {
+    if(append_json(&out, games, game_count, tables, user_count, hltb_database_path) != 0) {
         snprintf(error_message, error_message_size,
                  "Out of memory building game list.");
         free(out.data);
@@ -634,7 +721,7 @@ int games_set_playtime(const char *database_path, const char *title_id,
                        const char *user_id, long long value,
                        char *error_message, size_t error_message_size) {
     static int backed_up = 0;
-    char id[16];
+    char id[32];
     char table[64];
     sqlite3 *db = NULL;
     sqlite3_stmt *statement = NULL;

@@ -463,9 +463,43 @@ static void handle_shortcut_remove(int fd, const server_request_t *req,
     server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true,\"installed\":false}", 29, 0);
 }
 
+/* POST /api/category?id=<titleId>&category=<PS5|PS4|Other|Apps|AUTO> */
+static void handle_set_category(int fd, const server_request_t *req,
+                                const context_t *ctx) {
+    char id[32] = {0};
+    char category[32] = {0};
+    char error[256] = {0};
+
+    if(strcmp(req->method, "POST") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    if(!req->has_custom_header) {
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
+        return;
+    }
+    if(param_get(req, "id", id, sizeof id) != 0 || !id[0] ||
+       param_get(req, "category", category, sizeof category) != 0 || !category[0]) {
+        send_json_error(fd, 400, "Missing id or category parameter.");
+        return;
+    }
+
+    if(hltb_set_title_category(ctx->hltb_database_path, id, category, error, sizeof error) != 0) {
+        send_json_error(fd, 500, error[0] ? error : "Failed to set category.");
+        return;
+    }
+
+    server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true}", 11, 0);
+}
+
 static void handle_request(int fd, const server_request_t *req, void *user) {
     const context_t *ctx = (const context_t *)user;
     const char *path = req->path;
+
+    if(strcmp(path, "/api/category") == 0) {
+        handle_set_category(fd, req, ctx);
+        return;
+    }
 
     if(strcmp(path, "/api/shortcut/status") == 0) {
         handle_shortcut_status(fd, req, ctx);
@@ -548,8 +582,8 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
     } else if(strcmp(path, "/api/games") == 0) {
         char error[256];
         size_t length = 0;
-        char *json = games_list_json(ctx->database_path, &length, error,
-                                     sizeof error);
+        char *json = games_list_json(ctx->database_path, ctx->hltb_database_path,
+                                     &length, error, sizeof error);
 
         if(!json) {
             send_json_error(fd, 500, error);
@@ -570,18 +604,20 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
         server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
         free(json);
     } else if(strncmp(path, "/icon/", 6) == 0) {
-        char title_id[16];
+        char title_id[32];
         char icon[256];
         size_t len = strlen(path + 6);
 
-        /* Expect exactly "<TITLEID>.png"; games_icon_path() validates the ID. */
-        if(len == 13 && strcmp(path + 6 + 9, ".png") == 0) {
-            memcpy(title_id, path + 6, 9);
-            title_id[9] = '\0';
-            if(games_icon_path(ctx->database_path, title_id, icon,
-                               sizeof icon) == 0 &&
-               server_send_file(fd, icon, "image/png") == 0) {
-                return;
+        if(len >= 8 && len <= 24 && strcmp(path + 6 + (len - 4), ".png") == 0) {
+            size_t id_len = len - 4;
+            if(id_len + 1 < sizeof title_id) {
+                memcpy(title_id, path + 6, id_len);
+                title_id[id_len] = '\0';
+                if(games_icon_path(ctx->database_path, title_id, icon,
+                                   sizeof icon) == 0 &&
+                   server_send_file(fd, icon, "image/png") == 0) {
+                    return;
+                }
             }
         }
         server_send(fd, 404, "text/plain", "Not found", 9, 0);

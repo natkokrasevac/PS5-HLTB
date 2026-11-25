@@ -330,7 +330,11 @@ button.item:hover { background: var(--fill-hover); }
 .art img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 .badge { position: absolute; top: .7rem; left: .6rem; display: inline-flex; align-items: baseline; padding: .1rem .55rem; font-family: "SFMono-Regular", Consolas, monospace; font-size: .78rem; font-weight: 800; letter-spacing: .06em; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; background: var(--badge-bg); box-shadow: 0 .2rem .6rem rgba(0, 0, 0, .3); }
 .badge.ps4 { color: var(--amber); border-color: var(--amber); }
+.badge.other { color: #06b6d4; border-color: #06b6d4; }
+.badge.apps { color: #c084fc; border-color: #c084fc; }
 .badge.hb { color: #c084fc; border-color: #c084fc; }
+.avatar.sq.other { background: linear-gradient(135deg, #06b6d4, #0284c7); color: #fff; }
+.avatar.sq.apps { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; }
 .avatar.sq.hb { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; }
 .hbadge { position: absolute; bottom: .55rem; right: .55rem; padding: .1rem .45rem; font-size: .68rem; font-weight: 800; letter-spacing: .04em; color: var(--green); border: 1px solid var(--played-line); border-radius: 5px; background: var(--badge-bg); box-shadow: 0 .15rem .4rem rgba(0, 0, 0, .35); }
 .hbadge.pend { color: var(--amber); border-color: var(--amber); }
@@ -370,9 +374,19 @@ footer { margin-top: auto; padding-top: 1.1rem; text-align: center; color: var(-
 .mstamps { display: flex; flex-wrap: wrap; margin-top: .25rem; }
 .mstamp { margin: 0 .4rem .2rem 0; padding: .06rem .4rem; font-size: .72rem; font-weight: 800; letter-spacing: .1em; line-height: 1.4; color: var(--accent); border: 2px solid var(--accent); border-radius: 3px; background: var(--badge-bg); }
 .mstamp.ps4 { color: var(--amber); border-color: var(--amber); }
+.mstamp.other { color: #06b6d4; border-color: #06b6d4; }
+.mstamp.apps { color: #c084fc; border-color: #c084fc; }
 .mstamp.hb { color: #c084fc; border-color: #c084fc; }
+.gstamp.other { color: #06b6d4; border-color: #06b6d4; }
+.gstamp.apps { color: #c084fc; border-color: #c084fc; }
 .gstamp.hb { color: #c084fc; border-color: #c084fc; }
 .mstamp.id { color: var(--text); border-color: var(--line-strong); font-family: "SFMono-Regular", Consolas, monospace; }
+.m-cat-row { display: inline-flex; align-items: center; gap: .35rem; margin-top: .28rem; flex-wrap: wrap; }
+.m-cat-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.m-cat-reset { background: transparent; border: 0; color: var(--muted); font-size: .68rem; text-decoration: underline; cursor: pointer; padding: 0 .2rem; }
+.m-cat-reset:hover { color: var(--accent); }
+.seg.sm { padding: .1rem; margin-right: 0; }
+.seg.sm button { padding: .12rem .5rem; font-size: .73rem; }
 
 .ebtn { flex: 0 0 auto; margin-left: .5rem; padding: .3rem .75rem; cursor: pointer; color: var(--text); font: inherit; font-size: .85rem; font-weight: 600; white-space: nowrap; background: var(--fill); border: 1px solid var(--line-strong); border-radius: var(--rc); }
 .ebtn:hover { background: var(--fill-hover); }
@@ -1497,7 +1511,8 @@ input[type=number] { -moz-appearance: textfield; }
       <button class="chip on" data-p="ALL" type="button">ALL</button>
       <button class="chip" data-p="PS5" type="button" aria-label="PS5" title="PS5"><img src="/resources/ps5_logo.png" alt="PS5" class="chip-logo"></button>
       <button class="chip" data-p="PS4" type="button" aria-label="PS4" title="PS4"><img src="/resources/ps4_logo.webp" alt="PS4" class="chip-logo"></button>
-      <button class="chip" data-p="HOMEBREW" type="button">HOMEBREW</button>
+      <button class="chip" data-p="Other" type="button">OTHER</button>
+      <button class="chip" data-p="Apps" type="button">APPS</button>
       <button class="chip" id="sort" type="button">SORT: MOST PLAYED</button>
       <button class="chip" id="view" type="button">VIEW: CARDS</button>
       <button class="chip act" id="reload" type="button">Refresh</button>
@@ -1523,6 +1538,16 @@ input[type=number] { -moz-appearance: textfield; }
       <div>
         <h3 class="mname" id="mName"></h3>
         <div class="mstamps" id="mId"></div>
+        <div class="m-cat-row" id="mCatRow">
+          <span class="m-cat-label">Category:</span>
+          <div class="seg sm" id="mCatSeg">
+            <button type="button" data-cat="PS5">PS5</button>
+            <button type="button" data-cat="PS4">PS4</button>
+            <button type="button" data-cat="Other">Other</button>
+            <button type="button" data-cat="Apps">Apps</button>
+          </div>
+          <button type="button" class="m-cat-reset" id="mCatReset" title="Reset to auto-detected category" style="display:none">Reset Auto</button>
+        </div>
         <div class="mtotal" id="mTotal"></div>
       </div>
     </div>
@@ -1618,10 +1643,10 @@ input[type=number] { -moz-appearance: textfield; }
   var SORTS = ['played', 'recent', 'name', 'id'];
   var SORT_LABELS = { played: 'MOST PLAYED', recent: 'RECENT', name: 'A-Z', id: 'TITLE ID' };
   var CHART_COLORS = ['#3b82f6', '#f97316', '#10b981', '#a855f7', '#ef4444', '#06b6d4', '#eab308', '#ec4899'];
-  var ALL_PLATFORMS = ['PS5', 'PS4', 'HOMEBREW'];
+  var ALL_PLATFORMS = ['PS5', 'PS4', 'Other', 'Apps'];
   var state = {
     unit: 1, users: [], names: [], games: [],
-    platforms: { PS5: true, PS4: true, HOMEBREW: true },
+    platforms: { PS5: true, PS4: true, Other: true, Apps: true },
     sort: 'played',
     query: '', maxSec: 0, view: 'cards', tfmt: 'dhm',
     hltb: { ps5User: '', hltbUserId: 0, hltbUsername: '', autoSync: 1, lastSync: '', sessionExpired: 0, map: {} }
@@ -1632,7 +1657,10 @@ input[type=number] { -moz-appearance: textfield; }
     if (savedPlat) {
       var parts = savedPlat.split(',');
       ALL_PLATFORMS.forEach(function (p) { state.platforms[p] = false; });
-      parts.forEach(function (p) { if (state.platforms[p] !== undefined) { state.platforms[p] = true; } });
+      parts.forEach(function (p) {
+        if (p === 'HOMEBREW') p = 'Apps';
+        if (state.platforms[p] !== undefined) { state.platforms[p] = true; }
+      });
       var anyPlat = false;
       ALL_PLATFORMS.forEach(function (p) { if (state.platforms[p]) { anyPlat = true; } });
       if (!anyPlat) { ALL_PLATFORMS.forEach(function (p) { state.platforms[p] = true; }); }
@@ -2011,16 +2039,27 @@ input[type=number] { -moz-appearance: textfield; }
     return sharedHltbEntry(titleId);
   }
 
-  function isHomebrew(game) {
+  function defaultPlatform(id) {
+    if (!id) { return 'Apps'; }
+    var u = id.toUpperCase();
+    if (u.indexOf('PPSA9') === 0 || u.indexOf('CUSA9') === 0) { return 'Apps'; }
+    if (u.indexOf('PPSA') === 0 || u.indexOf('PPST') === 0) { return 'PS5'; }
+    if (u.indexOf('CUSA') === 0 || u.indexOf('CUST') === 0) { return 'PS4'; }
+    return 'Apps';
+  }
+
+  function isApp(game) {
     if (!game) { return false; }
-    if (game.platform === 'HOMEBREW') { return true; }
-    if (/^(PPSA9|CUSA9)/i.test(game.id)) { return true; }
-    var n = (game.name || '').toLowerCase();
-    return ['breeze', 'prosperoeden', 'prosperolight', 'prosperostore', 'ps5sx2'].indexOf(n) !== -1;
+    var p = game.platform || defaultPlatform(game.id);
+    return p === 'Apps' || p === 'HOMEBREW';
+  }
+
+  function isHomebrew(game) {
+    return isApp(game);
   }
 
   function gameSyncStatus(game) {
-    if (isHomebrew(game)) {
+    if (isApp(game)) {
       return { state: 'unselected', selected: false, sec: 0, syncedSec: 0, entry: null, listType: 'playing' };
     }
     var uIdx = activeHltbUserIdx();
@@ -2140,8 +2179,8 @@ input[type=number] { -moz-appearance: textfield; }
     state.maxSec = 0;
     for (i = 0; i < state.games.length; i++) {
       g = state.games[i];
-      if (isHomebrew(g)) {
-        g.platform = 'HOMEBREW';
+      if (!g.platform || g.platform === 'HOMEBREW') {
+        g.platform = g.platform === 'HOMEBREW' ? 'Apps' : defaultPlatform(g.id);
       }
       g.userSec = [];
       g.sec = 0;
@@ -2270,7 +2309,8 @@ input[type=number] { -moz-appearance: textfield; }
   function visibleGames() {
     var q = state.query.toLowerCase();
     var list = state.games.filter(function (g) {
-      var p = g.platform || 'PS4';
+      var p = g.platform || defaultPlatform(g.id);
+      if (p === 'HOMEBREW') p = 'Apps';
       if (!state.platforms[p]) { return false; }
       if (!q) { return true; }
       return g.name.toLowerCase().indexOf(q) !== -1 || g.id.toLowerCase().indexOf(q) !== -1;
@@ -2510,6 +2550,7 @@ input[type=number] { -moz-appearance: textfield; }
     var uSec = 0;
     var playedCount = 0;
     for (var i = 0; i < state.games.length; i++) {
+      if (isApp(state.games[i])) { continue; }
       var s = (state.games[i].userSec && state.games[i].userSec[k]) || 0;
       uSec += s;
       if (s > 0) { playedCount++; }
@@ -2526,7 +2567,10 @@ input[type=number] { -moz-appearance: textfield; }
 
     $('distModalTitle').textContent = uName + ' \u2014 Play Time Distribution';
     var allTotal = 0;
-    for (var j = 0; j < state.games.length; j++) { allTotal += state.games[j].sec; }
+    for (var j = 0; j < state.games.length; j++) {
+      if (isApp(state.games[j])) { continue; }
+      allTotal += state.games[j].sec;
+    }
     var sharePct = allTotal > 0 ? Math.round((uSec / allTotal) * 100) : 0;
     $('distModalSub').textContent = (uSec > 0 ? fmtLong(uSec) : '0 hours') +
       ' across ' + plural(playedCount, 'game', 'games') + ' played' +
@@ -2535,19 +2579,20 @@ input[type=number] { -moz-appearance: textfield; }
     var list = $('distModalList');
     clear(list);
 
-    var userGames = state.games.slice().sort(function (a, b) {
+    var userGames = state.games.filter(function (g) {
+      return !isApp(g) && ((g.userSec && g.userSec[k]) || 0) > 0;
+    }).sort(function (a, b) {
       var sa = (a.userSec && a.userSec[k]) || 0;
       var sb = (b.userSec && b.userSec[k]) || 0;
       if (sb !== sa) { return sb - sa; }
       return a.name.localeCompare(b.name);
     });
 
-    var playedGames = userGames.filter(function (g) { return ((g.userSec && g.userSec[k]) || 0) > 0; });
-    if (!playedGames.length) {
+    if (!userGames.length) {
       list.appendChild(el('div', 'none', 'No games played yet by ' + uName + '.'));
     } else {
-      for (var gi = 0; gi < playedGames.length; gi++) {
-        list.appendChild(makeDistItem(playedGames[gi], (playedGames[gi].userSec && playedGames[gi].userSec[k]) || 0, uSec, userColor));
+      for (var gi = 0; gi < userGames.length; gi++) {
+        list.appendChild(makeDistItem(userGames[gi], (userGames[gi].userSec && userGames[gi].userSec[k]) || 0, uSec, userColor));
       }
     }
 
@@ -2556,14 +2601,18 @@ input[type=number] { -moz-appearance: textfield; }
   }
 
   function openPlatformDistributionModal(pKey) {
-    var pLabel = pKey === 'PS5' ? 'PS5 games' : (pKey === 'PS4' ? 'PS4 games' : 'Homebrew apps');
-    var pColor = pKey === 'PS5' ? '#3b82f6' : (pKey === 'PS4' ? '#f59e0b' : '#c084fc');
-    var pAvCls = pKey === 'PS5' ? 'avatar sq' : (pKey === 'PS4' ? 'avatar sq amber' : 'avatar sq hb');
-    var pTag = pKey === 'PS5' ? 'PS5' : (pKey === 'PS4' ? 'PS4' : 'HB');
+    var pLabel = pKey === 'PS5' ? 'PS5 games' : (pKey === 'PS4' ? 'PS4 games' : (pKey === 'Other' ? 'Other games' : 'Apps'));
+    var pColor = pKey === 'PS5' ? '#3b82f6' : (pKey === 'PS4' ? '#f59e0b' : (pKey === 'Other' ? '#06b6d4' : '#c084fc'));
+    var pAvCls = pKey === 'PS5' ? 'avatar sq' : (pKey === 'PS4' ? 'avatar sq amber' : (pKey === 'Other' ? 'avatar sq other' : 'avatar sq apps'));
+    var pTag = pKey === 'PS5' ? 'PS5' : (pKey === 'PS4' ? 'PS4' : (pKey === 'Other' ? 'OTH' : 'APP'));
 
     var pSec = 0;
     var installedCount = 0;
-    var platGames = state.games.filter(function (g) { return (g.platform || 'PS4') === pKey; });
+    var platGames = state.games.filter(function (g) {
+      var k = g.platform || defaultPlatform(g.id);
+      if (k === 'HOMEBREW') k = 'Apps';
+      return k === pKey;
+    });
     for (var i = 0; i < platGames.length; i++) {
       pSec += platGames[i].sec;
       installedCount++;
@@ -2621,23 +2670,27 @@ input[type=number] { -moz-appearance: textfield; }
   /* ---------- dashboard ---------- */
   function renderDashboard() {
     var games = state.games;
-    var total = 0, played = 0, i, k;
-    var plat = { PS5: 0, PS4: 0, HOMEBREW: 0 };
+    var total = 0, played = 0, totalGames = 0, i, k;
+    var plat = { PS5: 0, PS4: 0, Other: 0, Apps: 0 };
     var userTotals = [];
     var userGames = [];
-    var count = { PS5: 0, PS4: 0, HOMEBREW: 0 };
+    var count = { PS5: 0, PS4: 0, Other: 0, Apps: 0 };
     for (k = 0; k < state.users.length; k++) { userTotals.push(0); userGames.push(0); }
     for (i = 0; i < games.length; i++) {
-      total += games[i].sec;
-      if (games[i].sec > 0) { played++; }
-      var pKey = games[i].platform || 'PS4';
+      var pKey = games[i].platform || defaultPlatform(games[i].id);
+      if (pKey === 'HOMEBREW') { pKey = 'Apps'; }
       if (!plat[pKey]) { plat[pKey] = 0; }
       if (!count[pKey]) { count[pKey] = 0; }
       plat[pKey] += games[i].sec;
       count[pKey]++;
-      for (k = 0; k < state.users.length; k++) {
-        userTotals[k] += games[i].userSec[k];
-        if (games[i].userSec[k] > 0) { userGames[k]++; }
+      if (!isApp(games[i])) {
+        totalGames++;
+        total += games[i].sec;
+        if (games[i].sec > 0) { played++; }
+        for (k = 0; k < state.users.length; k++) {
+          userTotals[k] += games[i].userSec[k];
+          if (games[i].userSec[k] > 0) { userGames[k]++; }
+        }
       }
     }
 
@@ -2645,9 +2698,9 @@ input[type=number] { -moz-appearance: textfield; }
     $('totalSub').textContent = state.users.length
       ? 'across ' + plural(state.users.length, 'user', 'users') + ' and ' + plural(played, 'game', 'games')
       : 'no user profiles found in app.db';
-    $('tGames').textContent = games.length;
+    $('tGames').textContent = totalGames;
     $('tPlayed').textContent = played;
-    $('tNever').textContent = games.length - played;
+    $('tNever').textContent = totalGames - played;
     $('tAvg').textContent = played ? (fmtLong(total / played) || '-') : '-';
 
     var pUsers = $('pUsers');
@@ -2687,7 +2740,10 @@ input[type=number] { -moz-appearance: textfield; }
         a4.appendChild(i4);
         return a4;
       }
-      return el('div', 'avatar sq hb', 'HB');
+      if (platKey === 'Other') {
+        return el('div', 'avatar sq other', 'OTH');
+      }
+      return el('div', 'avatar sq apps', 'APP');
     }
     pPlat.appendChild(makeItem([makePlatAv('PS5')], 'PS5 games',
       plat.PS5 ? fmtLong(plat.PS5) : 'none',
@@ -2699,12 +2755,19 @@ input[type=number] { -moz-appearance: textfield; }
       el('span', count.PS4 ? 'gstamp amber' : 'gstamp zero', plural(count.PS4, 'game', 'games') + ' installed'),
       function () { openPlatformDistributionModal('PS4'); },
       !plat.PS4));
-    if (count.HOMEBREW > 0) {
-      pPlat.appendChild(makeItem([el('div', 'avatar sq hb', 'HB')], 'Homebrew apps',
-        plat.HOMEBREW ? fmtLong(plat.HOMEBREW) : 'none',
-        el('span', count.HOMEBREW ? 'gstamp hb' : 'gstamp zero', plural(count.HOMEBREW, 'app', 'apps') + ' installed'),
-        function () { openPlatformDistributionModal('HOMEBREW'); },
-        !plat.HOMEBREW));
+    if (count.Other > 0) {
+      pPlat.appendChild(makeItem([makePlatAv('Other')], 'Other games',
+        plat.Other ? fmtLong(plat.Other) : 'none',
+        el('span', count.Other ? 'gstamp other' : 'gstamp zero', plural(count.Other, 'game', 'games') + ' installed'),
+        function () { openPlatformDistributionModal('Other'); },
+        !plat.Other));
+    }
+    if (count.Apps > 0) {
+      pPlat.appendChild(makeItem([makePlatAv('Apps')], 'Apps',
+        plat.Apps ? fmtLong(plat.Apps) : 'none',
+        el('span', count.Apps ? 'gstamp apps' : 'gstamp zero', plural(count.Apps, 'app', 'apps') + ' installed'),
+        function () { openPlatformDistributionModal('Apps'); },
+        !plat.Apps));
     }
     renderSideAccess();
 
@@ -2741,7 +2804,7 @@ input[type=number] { -moz-appearance: textfield; }
     }
 
     var progGames = games.filter(function (g) {
-      return !isHomebrew(g) && gameHltbTimes(g) !== null;
+      return !isApp(g) && gameHltbTimes(g) !== null;
     });
     progGames.sort(function (a, b) {
       var sa = (a.userSec && a.userSec[uIdx] !== undefined) ? a.userSec[uIdx] : 0;
@@ -2776,8 +2839,8 @@ input[type=number] { -moz-appearance: textfield; }
 
   /* ---------- HLTB Tab rendering & Native PS5 Sync ---------- */
   function toggleGameSelection(game, selected, customHltbId, listType) {
-    if (isHomebrew(game)) {
-      toast('Homebrew applications cannot be synced to HowLongToBeat.');
+    if (isApp(game)) {
+      toast('Apps cannot be synced to HowLongToBeat.');
       return;
     }
     var uId = activeHltbUserId();
@@ -2911,7 +2974,7 @@ input[type=number] { -moz-appearance: textfield; }
     var list = state.games.slice().sort(byPlayed);
     for (var i = 0; i < list.length; i++) {
       var g = list[i];
-      if (isHomebrew(g)) { continue; } /* Exclude homebrew apps from HLTB sync list */
+      if (isApp(g)) { continue; } /* Exclude apps from HLTB sync list */
       var st = gameSyncStatus(g);
       counts.all++;
       if (st.selected) {
@@ -3244,7 +3307,11 @@ input[type=number] { -moz-appearance: textfield; }
     card.setAttribute('role', 'button');
 
     var art = makeArt(game, 'art');
-    var badge = el('span', game.platform === 'PS4' ? 'badge ps4' : (game.platform === 'HOMEBREW' ? 'badge hb' : 'badge'), game.platform);
+    var bCls = 'badge';
+    if (game.platform === 'PS4') bCls = 'badge ps4';
+    else if (game.platform === 'Other') bCls = 'badge other';
+    else if (game.platform === 'Apps' || game.platform === 'HOMEBREW') bCls = 'badge apps';
+    var badge = el('span', bCls, game.platform === 'HOMEBREW' ? 'Apps' : (game.platform || 'PS5'));
     art.appendChild(badge);
     art.appendChild(idChip(game.id, 'idchip over'));
     var st = gameSyncStatus(game);
@@ -3298,6 +3365,38 @@ input[type=number] { -moz-appearance: textfield; }
     for (var i = 0; i < 8; i++) { grid.appendChild(el('div', 'skel')); }
   }
 
+  function setGameCategory(game, newCat) {
+    if (!game || !game.id) return;
+    if (newCat !== 'AUTO' && game.platform === newCat) return;
+
+    var url = '/api/category?id=' + encodeURIComponent(game.id) + '&category=' + encodeURIComponent(newCat);
+    fetch(url, {
+      method: 'POST',
+      headers: csrfHeaders()
+    }).then(function (res) {
+      if (!res.ok) {
+        throw new Error('Failed to update category (' + res.status + ')');
+      }
+      return res.json();
+    }).then(function () {
+      if (newCat === 'AUTO') {
+        game.customCat = false;
+        game.platform = defaultPlatform(game.id);
+        toast('Reset "' + game.name + '" category to ' + game.platform);
+      } else {
+        game.customCat = true;
+        game.platform = newCat;
+        toast('Categorized "' + game.name + '" as ' + newCat);
+      }
+      showDetail(game, lastFocus);
+      renderDashboard();
+      renderGrid();
+      renderHltbTab();
+    }).catch(function (err) {
+      toast('Error changing category: ' + (err.message || err));
+    });
+  }
+
   /* ---------- detail ---------- */
   function showDetail(game, from) {
     var k;
@@ -3308,8 +3407,31 @@ input[type=number] { -moz-appearance: textfield; }
     while (art.firstChild) { $('mArt').appendChild(art.firstChild); }
     $('mName').textContent = game.name;
     clear($('mId'));
-    $('mId').appendChild(el('span', game.platform === 'PS4' ? 'mstamp ps4' : (game.platform === 'HOMEBREW' ? 'mstamp hb' : 'mstamp'), game.platform));
+    var sCls = 'mstamp';
+    var curPlat = (game.platform === 'HOMEBREW' ? 'Apps' : (game.platform || defaultPlatform(game.id)));
+    if (curPlat === 'PS4') sCls = 'mstamp ps4';
+    else if (curPlat === 'Other') sCls = 'mstamp other';
+    else if (curPlat === 'Apps') sCls = 'mstamp apps';
+    $('mId').appendChild(el('span', sCls, curPlat));
     $('mId').appendChild(idChip(game.id, 'idchip'));
+
+    var catBtns = $('mCatSeg').getElementsByTagName('button');
+    for (var cbi = 0; cbi < catBtns.length; cbi++) {
+      var cb = catBtns[cbi];
+      var cVal = cb.getAttribute('data-cat');
+      cb.className = (cVal === curPlat) ? 'on' : '';
+      cb.onclick = (function (targetCat) {
+        return function () {
+          setGameCategory(game, targetCat);
+        };
+      })(cVal);
+    }
+    var rstBtn = $('mCatReset');
+    rstBtn.style.display = game.customCat ? 'inline-block' : 'none';
+    rstBtn.onclick = function () {
+      setGameCategory(game, 'AUTO');
+    };
+
     $('mTotal').textContent = game.sec > 0 ? fmtLong(game.sec) : 'Not played yet';
     $('mTotal').className = game.sec > 0 ? 'mtotal' : 'mtotal zero';
 
@@ -3326,7 +3448,7 @@ input[type=number] { -moz-appearance: textfield; }
       if (ed) { box.appendChild(ed.panel); }
     }
 
-    if (isHomebrew(game)) {
+    if (isApp(game)) {
       $('mHltbBox').style.display = 'none';
     } else {
       $('mHltbBox').style.display = 'block';

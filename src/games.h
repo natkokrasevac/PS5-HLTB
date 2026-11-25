@@ -22,6 +22,9 @@ void games_set_excluded(const char *const *titles, size_t count);
 typedef int (*games_user_name_fn)(const char *user_id, char *name, size_t size);
 void games_set_user_name_resolver(games_user_name_fn resolver);
 
+/* Returns the default platform string ("PS5", "PS4", or "HOMEBREW") based on Title ID. */
+const char *games_default_platform(const char *title_id);
+
 /* Builds a JSON document describing all installed games:
  *   {"unitSeconds":1,
  *    "users":["0314904805","0314904806"],
@@ -34,8 +37,8 @@ void games_set_user_name_resolver(games_user_name_fn resolver);
  * ("has" is 0 when the user has no row for that game, so it cannot be edited).
  * Returns a malloc'd, NUL-terminated string (caller frees) and sets *length, or
  * NULL on failure with a message in error_message. */
-char *games_list_json(const char *database_path, size_t *length,
-                      char *error_message, size_t error_message_size);
+char *games_list_json(const char *database_path, const char *hltb_database_path,
+                      size_t *length, char *error_message, size_t error_message_size);
 
 /* Resolves the icon file of a title using the icon path stored in app.db.
  * Returns 0 and fills path when the file exists, -1 otherwise (also when

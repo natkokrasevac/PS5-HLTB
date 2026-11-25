@@ -1602,6 +1602,10 @@ static int open_hltb_db(const char *path, sqlite3 **out_db, char *error_message,
         "  list_type TEXT NOT NULL DEFAULT 'playing',"
         "  updated_at TEXT NOT NULL DEFAULT '',"
         "  PRIMARY KEY (user_id, title_id)"
+        ");"
+        "CREATE TABLE IF NOT EXISTS title_categories ("
+        "  title_id TEXT PRIMARY KEY,"
+        "  category TEXT NOT NULL"
         ");";
     sqlite3 *db = NULL;
     char *err = NULL;
@@ -1719,6 +1723,119 @@ static int open_hltb_db(const char *path, sqlite3 **out_db, char *error_message,
 
     *out_db = db;
     return 0;
+}
+
+int hltb_set_title_category(const char *path, const char *title_id,
+                            const char *category, char *error, size_t error_size) {
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int rc;
+
+    if(!title_id || !title_id[0]) {
+        if(error && error_size) snprintf(error, error_size, "Missing title ID.");
+        return -1;
+    }
+    if(open_hltb_db(path, &db, error, error_size) != 0) {
+        return -1;
+    }
+
+    if(!category || !category[0] || strcasecmp(category, "AUTO") == 0) {
+        rc = sqlite3_prepare_v2(db, "DELETE FROM title_categories WHERE title_id = ?1",
+                                -1, &stmt, NULL);
+        if(rc == SQLITE_OK) {
+            sqlite3_bind_text(stmt, 1, title_id, -1, SQLITE_STATIC);
+            sqlite3_step(stmt);
+            sqlite3_finalize(stmt);
+        }
+        sqlite3_close(db);
+        return 0;
+    }
+
+    const char *norm_cat = NULL;
+    if(strcasecmp(category, "PS5") == 0) {
+        norm_cat = "PS5";
+    } else if(strcasecmp(category, "PS4") == 0) {
+        norm_cat = "PS4";
+    } else if(strcasecmp(category, "Other") == 0) {
+        norm_cat = "Other";
+    } else if(strcasecmp(category, "Apps") == 0 || strcasecmp(category, "HOMEBREW") == 0) {
+        norm_cat = "Apps";
+    }
+
+    if(!norm_cat) {
+        if(error && error_size) {
+            snprintf(error, error_size, "Invalid category '%s'. Must be PS5, PS4, Other, or Apps.", category);
+        }
+        sqlite3_close(db);
+        return -1;
+    }
+
+    rc = sqlite3_prepare_v2(db,
+        "INSERT OR REPLACE INTO title_categories (title_id, category) VALUES (?1, ?2)",
+        -1, &stmt, NULL);
+    if(rc != SQLITE_OK) {
+        set_db_error(error, error_size, "Prepare category update failed", db);
+        sqlite3_close(db);
+        return -1;
+    }
+    sqlite3_bind_text(stmt, 1, title_id, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, norm_cat, -1, SQLITE_STATIC);
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    if(rc != SQLITE_DONE) {
+        if(error && error_size) snprintf(error, error_size, "Failed to update category.");
+        return -1;
+    }
+    return 0;
+}
+
+int hltb_get_title_category(const char *path, const char *title_id,
+                            char *category, size_t category_size) {
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int found = -1;
+
+    if(!path || !title_id || !title_id[0] || !category || category_size == 0) {
+        return -1;
+    }
+    if(sqlite3_open_v2(path, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
+        if(db) sqlite3_close(db);
+        return -1;
+    }
+    sqlite3_busy_timeout(db, 3000);
+
+    if(sqlite3_prepare_v2(db, "SELECT category FROM title_categories WHERE title_id = ?1 LIMIT 1",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, title_id, -1, SQLITE_STATIC);
+        if(sqlite3_step(stmt) == SQLITE_ROW) {
+            const unsigned char *cat = sqlite3_column_text(stmt, 0);
+            if(cat && cat[0]) {
+                if(strcasecmp((const char *)cat, "HOMEBREW") == 0) {
+                    snprintf(category, category_size, "Apps");
+                } else {
+                    snprintf(category, category_size, "%s", (const char *)cat);
+                }
+                found = 0;
+            }
+        }
+        sqlite3_finalize(stmt);
+    }
+    sqlite3_close(db);
+    return found;
+}
+
+int hltb_is_app_title(const char *path, const char *title_id) {
+    char cat[32] = {0};
+    if(hltb_get_title_category(path, title_id, cat, sizeof cat) == 0 && cat[0]) {
+        return (strcasecmp(cat, "Apps") == 0 || strcasecmp(cat, "HOMEBREW") == 0) ? 1 : 0;
+    }
+    return strcasecmp(games_default_platform(title_id), "Apps") == 0 ? 1 : 0;
+}
+
+int hltb_is_homebrew_title(const char *path, const char *title_id) {
+    return hltb_is_app_title(path, title_id);
 }
 
 char *hltb_state_json(const char *hltb_db_path, size_t *length,
@@ -2347,6 +2464,13 @@ int hltb_select_game(const char *hltb_db_path, const char *ps5_user_id,
     if(strncmp(title_id, "PPSA9", 5) == 0 || strncmp(title_id, "CUSA9", 5) == 0) {
         snprintf(error_message, error_message_size,
                  "Homebrew applications cannot be synced to HowLongToBeat.");
+        return -1;
+    }
+
+    /* Apps are not games and cannot be synced to HowLongToBeat */
+    if(hltb_is_app_title(hltb_db_path, title_id)) {
+        snprintf(error_message, error_message_size,
+                 "Apps cannot be synced to HowLongToBeat.");
         return -1;
     }
 
@@ -3101,6 +3225,7 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path, i
             const char *tid = (const char *)sqlite3_column_text(stmt, 0);
             const char *tname = (const char *)sqlite3_column_text(stmt, 1);
             if(!tid || !tid[0] || !tname || !tname[0]) continue;
+            if(hltb_is_homebrew_title(hltb_db_path, tid)) continue;
 
             if(cand_count == cand_cap) {
                 size_t ncap = cand_cap ? cand_cap * 2 : 32;

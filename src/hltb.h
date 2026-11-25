@@ -91,4 +91,16 @@ void hltb_notify_session_expired(void);
 char *hltb_search_suggestions_json(const char *query, size_t *length_out,
                                    char *error_message, size_t error_message_size);
 
+/* Sets, updates or clears the platform category override for a title ("PS5", "PS4", "Other", "Apps", or "AUTO"). */
+int hltb_set_title_category(const char *path, const char *title_id,
+                            const char *category, char *error, size_t error_size);
+
+/* Gets the overridden category for a title, or -1 if not set */
+int hltb_get_title_category(const char *path, const char *title_id,
+                            char *category, size_t category_size);
+
+/* Returns 1 if title is considered an app (cannot sync to HLTB), 0 if game ("PS5", "PS4", "Other") */
+int hltb_is_app_title(const char *path, const char *title_id);
+int hltb_is_homebrew_title(const char *path, const char *title_id);
+
 #endif
