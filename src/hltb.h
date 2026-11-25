@@ -131,4 +131,9 @@ char *hltb_backup_import_json(const char *app_db_path, const char *hltb_db_path,
                               size_t *length_out, char *error_message,
                               size_t error_message_size);
 
+/* Pulls higher playtime from HowLongToBeat user list into app.db for matched games */
+char *hltb_pull_from_hltb_json(const char *app_db_path, const char *hltb_db_path,
+                               const char *ps5_user_id, size_t *length_out,
+                               char *error_message, size_t error_message_size);
+
 #endif

@@ -1447,6 +1447,7 @@ input[type=number] { -moz-appearance: textfield; }
           <div class="hltb-row" style="margin-top:.5rem">
             <button class="refresh primary" id="hltbSyncNow" type="button">Sync Selected Now</button>
             <button class="refresh" id="hltbSyncAll" type="button" title="Force re-sync all selected games">Force Sync Selected</button>
+            <button class="refresh" id="hltbPull" type="button" title="Pull higher playtimes from HowLongToBeat into PS5">Pull from HLTB</button>
             <button class="refresh" id="hltbMatchAll" type="button" title="Auto-match all installed games with HowLongToBeat">Auto-Match All Games</button>
           </div>
         </div>
@@ -1685,6 +1686,16 @@ input[type=number] { -moz-appearance: textfield; }
         </div>
         <div class="bk-row">
           <button class="refresh primary" id="bkRestoreSnapBtn" type="button">Restore Snapshot</button>
+        </div>
+      </div>
+
+      <div class="bk-card">
+        <div>
+          <h4>Pull from HowLongToBeat</h4>
+          <p class="bk-sub" id="bkHltbSub">Pull higher playtimes recorded on your HowLongToBeat account into your PS5.</p>
+        </div>
+        <div class="bk-row">
+          <button class="refresh" id="bkHltbPullBtn" type="button">Pull from HLTB</button>
         </div>
       </div>
 
@@ -3020,16 +3031,25 @@ input[type=number] { -moz-appearance: textfield; }
 
     var syncNowBtn = $('hltbSyncNow');
     var syncAllBtn = $('hltbSyncAll');
+    var pullBtn = $('hltbPull');
     if (acct.loggedIn && !acct.sessionExpired) {
       syncNowBtn.disabled = false;
       syncNowBtn.title = 'Sync selected games to HLTB for ' + userLabel(uIdx);
       syncAllBtn.disabled = false;
       syncAllBtn.title = 'Force re-sync all selected games for ' + userLabel(uIdx);
+      if (pullBtn) {
+        pullBtn.disabled = false;
+        pullBtn.title = 'Pull higher playtimes from HowLongToBeat into PS5 for ' + userLabel(uIdx);
+      }
     } else {
       syncNowBtn.disabled = true;
       syncNowBtn.title = 'Sign in to HowLongToBeat first for ' + userLabel(uIdx);
       syncAllBtn.disabled = true;
       syncAllBtn.title = 'Sign in to HowLongToBeat first for ' + userLabel(uIdx);
+      if (pullBtn) {
+        pullBtn.disabled = true;
+        pullBtn.title = 'Sign in to HowLongToBeat first for ' + userLabel(uIdx);
+      }
     }
 
     if (acct.loggedIn && !acct.sessionExpired) {
@@ -3922,6 +3942,37 @@ input[type=number] { -moz-appearance: textfield; }
   };
   $('hltbSyncNow').onclick = function () { startHltbSync(false); };
   $('hltbSyncAll').onclick = function () { startHltbSync(true); };
+  if ($('hltbPull')) {
+    $('hltbPull').onclick = function () {
+      var btn = this;
+      var uId = activeHltbUserId();
+      btn.disabled = true;
+      btn.textContent = 'Pulling...';
+      updateSyncUI(true, 'Checking HLTB for higher playtimes...');
+      fetch('/api/hltb/pull' + (uId ? ('?user=' + encodeURIComponent(uId)) : ''), {
+        method: 'POST',
+        headers: csrfHeaders()
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.error) { throw new Error(d.error); }
+          var msg = 'Updated ' + (d.updated || 0) + ' game(s) from HLTB';
+          if (d.skipped) { msg += ' (' + d.skipped + ' already higher/equal)'; }
+          if (d.missingInDb) { msg += ' (' + d.missingInDb + ' not in app.db yet)'; }
+          toast(msg);
+          updateSyncUI(false);
+          load();
+        })
+        .catch(function (e) {
+          updateSyncUI(false);
+          toast((e && e.message) ? e.message : 'Pull from HLTB failed');
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = 'Pull from HLTB';
+        });
+    };
+  }
   $('hltbMatchAll').onclick = function () {
     var btn = this;
     btn.disabled = true;
@@ -4634,6 +4685,37 @@ input[type=number] { -moz-appearance: textfield; }
           });
       };
       reader.readAsText(inp.files[0]);
+    };
+  }
+
+  if ($('bkHltbPullBtn')) {
+    $('bkHltbPullBtn').onclick = function () {
+      var btn = this;
+      var uId = activeHltbUserId();
+      btn.disabled = true;
+      btn.textContent = 'Pulling...';
+      fetch('/api/hltb/pull' + (uId ? ('?user=' + encodeURIComponent(uId)) : ''), {
+        method: 'POST',
+        headers: csrfHeaders()
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.error) throw new Error(d.error);
+          showBackupResult({
+            restoredPlaytime: d.updated || 0,
+            skippedPlaytime: d.skipped || 0,
+            missingInDb: d.missingInDb || 0
+          });
+          toast('Pulled ' + (d.updated || 0) + ' game(s) from HLTB');
+          load();
+        })
+        .catch(function (e) {
+          toast('Pull from HLTB failed: ' + ((e && e.message) ? e.message : e));
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = 'Pull from HLTB';
+        });
     };
   }
 

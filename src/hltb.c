@@ -4524,3 +4524,249 @@ char *hltb_backup_import_json(const char *app_db_path, const char *hltb_db_path,
     if(length_out) *length_out = out.length;
     return out.data;
 }
+
+char *hltb_pull_from_hltb_json(const char *app_db_path, const char *hltb_db_path,
+                               const char *ps5_user_id, size_t *length_out,
+                               char *error_message, size_t error_message_size) {
+    sqlite3 *hltb_db = NULL;
+    sqlite3 *app_db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    sqlite3_stmt *snap_stmt = NULL;
+    sqlite3_stmt *sync_stmt = NULL;
+    char target_uid[32] = {0};
+    long long hltb_uid = 0;
+    char cookie[4096] = {0};
+    http_ctx_t hctx;
+    char url[128];
+    char req_body[512];
+    buffer_t resp = {0};
+    int status = 0;
+    int updated = 0, skipped = 0, missing = 0, not_on_hltb = 0;
+    buffer_t out = {0};
+    char chunk[256];
+
+    if(!app_db_path || !hltb_db_path) {
+        snprintf(error_message, error_message_size, "Missing database path.");
+        return NULL;
+    }
+
+    if(open_hltb_db(hltb_db_path, &hltb_db, error_message, error_message_size) != 0) {
+        return NULL;
+    }
+
+    if(ps5_user_id && ps5_user_id[0]) {
+        snprintf(target_uid, sizeof target_uid, "%s", ps5_user_id);
+    } else if(sqlite3_prepare_v2(
+                  hltb_db, "SELECT ps5_user_id FROM hltb_config WHERE id = 1",
+                  -1, &stmt, NULL) == SQLITE_OK) {
+        if(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *u = (const char *)sqlite3_column_text(stmt, 0);
+            if(u) snprintf(target_uid, sizeof target_uid, "%s", u);
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(!backup_is_valid_user_id(target_uid)) {
+        sqlite3_close(hltb_db);
+        snprintf(error_message, error_message_size, "Invalid PS5 user ID.");
+        return NULL;
+    }
+
+    if(sqlite3_prepare_v2(
+           hltb_db,
+           "SELECT hltb_user_id, session_cookie FROM hltb_accounts WHERE ps5_user_id = ?1 LIMIT 1",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, target_uid, -1, SQLITE_STATIC);
+        if(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *ck = (const char *)sqlite3_column_text(stmt, 1);
+            hltb_uid = sqlite3_column_int64(stmt, 0);
+            if(ck) snprintf(cookie, sizeof cookie, "%s", ck);
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(hltb_uid <= 0 || !cookie[0]) {
+        if(sqlite3_prepare_v2(
+               hltb_db,
+               "SELECT hltb_user_id, session_cookie FROM hltb_config WHERE id = 1 AND ps5_user_id = ?1 LIMIT 1",
+               -1, &stmt, NULL) == SQLITE_OK) {
+            sqlite3_bind_text(stmt, 1, target_uid, -1, SQLITE_STATIC);
+            if(sqlite3_step(stmt) == SQLITE_ROW) {
+                const char *ck = (const char *)sqlite3_column_text(stmt, 1);
+                hltb_uid = sqlite3_column_int64(stmt, 0);
+                if(ck) snprintf(cookie, sizeof cookie, "%s", ck);
+            }
+            sqlite3_finalize(stmt);
+            stmt = NULL;
+        }
+    }
+
+    if(hltb_uid <= 0 || !cookie[0]) {
+        sqlite3_close(hltb_db);
+        snprintf(error_message, error_message_size,
+                 "Please sign in to HowLongToBeat first.");
+        return NULL;
+    }
+
+    if(http_ctx_init(&hctx, NULL) != 0) {
+        sqlite3_close(hltb_db);
+        snprintf(error_message, error_message_size,
+                 "Failed to initialize HTTP client.");
+        return NULL;
+    }
+
+    snprintf(url, sizeof url,
+             "https://howlongtobeat.com/api/user/%lld/games/list", hltb_uid);
+    snprintf(req_body, sizeof req_body,
+             "{\"user_id\":%lld,\"toggleType\":\"Multi List\","
+             "\"lists\":[\"playing\",\"backlog\",\"replays\",\"custom\",\"custom2\","
+             "\"custom3\",\"completed\",\"retired\"],\"set_playstyle\":\"comp_all\","
+             "\"name\":\"\",\"platform\":\"\",\"storefront\":\"\",\"sortBy\":\"\","
+             "\"sortFlip\":0,\"view\":\"\",\"random\":0,\"limit\":500,"
+             "\"currentUserHome\":true}",
+             hltb_uid);
+
+    if(http_ctx_request(&hctx, 1, url, req_body, cookie, NULL, &status, &resp,
+                        NULL, 0) != 0) {
+        http_ctx_fini(&hctx);
+        free(resp.data);
+        sqlite3_close(hltb_db);
+        snprintf(error_message, error_message_size,
+                 "Failed to reach howlongtobeat.com.");
+        return NULL;
+    }
+    http_ctx_fini(&hctx);
+
+    if(status == 401 || status == 403) {
+        g_session_expired = 1;
+        hltb_notify_session_expired();
+        free(resp.data);
+        sqlite3_close(hltb_db);
+        snprintf(error_message, error_message_size,
+                 "HowLongToBeat session expired. Please sign in again.");
+        return NULL;
+    }
+    if(status != 200 || !resp.data) {
+        free(resp.data);
+        sqlite3_close(hltb_db);
+        snprintf(error_message, error_message_size,
+                 "HowLongToBeat returned HTTP %d.", status);
+        return NULL;
+    }
+
+    if(backup_copy_file(app_db_path, GAMES_BACKUP_PATH) != 0) {
+        free(resp.data);
+        sqlite3_close(hltb_db);
+        snprintf(error_message, error_message_size,
+                 "Backup to " GAMES_BACKUP_PATH " failed, nothing changed.");
+        return NULL;
+    }
+
+    if(sqlite3_open_v2(app_db_path, &app_db,
+                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
+        set_db_error(error_message, error_message_size,
+                     "Open app.db for HLTB pull failed", app_db);
+        if(app_db) sqlite3_close(app_db);
+        free(resp.data);
+        sqlite3_close(hltb_db);
+        return NULL;
+    }
+    sqlite3_busy_timeout(app_db, 5000);
+    sqlite3_exec(app_db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, NULL);
+    sqlite3_exec(hltb_db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, NULL);
+
+    (void)sqlite3_prepare_v2(
+        hltb_db,
+        "INSERT INTO playtime_snapshots "
+        "(user_id, title_id, played_seconds, updated_at) "
+        "VALUES (?1, ?2, ?3, datetime('now', 'localtime')) "
+        "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+        "  played_seconds = MAX(playtime_snapshots.played_seconds, excluded.played_seconds), "
+        "  updated_at = datetime('now', 'localtime')",
+        -1, &snap_stmt, NULL);
+
+    (void)sqlite3_prepare_v2(
+        hltb_db,
+        "UPDATE hltb_games SET synced_seconds = ?3, updated_at = datetime('now', 'localtime') "
+        "WHERE user_id = ?1 AND title_id = ?2",
+        -1, &sync_stmt, NULL);
+
+    if(sqlite3_prepare_v2(
+           hltb_db,
+           "SELECT title_id, MAX(hltb_game_id) FROM hltb_games "
+           "WHERE hltb_game_id > 0 GROUP BY title_id",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *tid = (const char *)sqlite3_column_text(stmt, 0);
+            long long gid = sqlite3_column_int64(stmt, 1);
+            char needle[64];
+            const char *p;
+
+            if(!tid || gid <= 0 || !games_is_listed_title(tid)) continue;
+            if(hltb_is_app_title(hltb_db_path, tid)) continue;
+
+            snprintf(needle, sizeof needle, "\"game_id\":%lld", gid);
+            p = strstr(resp.data, needle);
+            if(!p) {
+                not_on_hltb++;
+                continue;
+            }
+            {
+                const char *obj_start = p;
+                long long inv = 0;
+                int before_updated = updated;
+
+                while(obj_start > resp.data && *obj_start != '{') {
+                    obj_start--;
+                }
+                if(*obj_start != '{' ||
+                   json_extract_int64(obj_start, "invested_pro", &inv) != 0 ||
+                   inv <= 0) {
+                    not_on_hltb++;
+                    continue;
+                }
+
+                restore_single_playtime(app_db, target_uid, tid, inv, "", 0,
+                                        &updated, &skipped, &missing);
+                if(updated > before_updated) {
+                    if(snap_stmt) {
+                        sqlite3_reset(snap_stmt);
+                        sqlite3_bind_text(snap_stmt, 1, target_uid, -1, SQLITE_STATIC);
+                        sqlite3_bind_text(snap_stmt, 2, tid, -1, SQLITE_STATIC);
+                        sqlite3_bind_int64(snap_stmt, 3, (sqlite3_int64)inv);
+                        (void)sqlite3_step(snap_stmt);
+                    }
+                    if(sync_stmt) {
+                        sqlite3_reset(sync_stmt);
+                        sqlite3_bind_text(sync_stmt, 1, target_uid, -1, SQLITE_STATIC);
+                        sqlite3_bind_text(sync_stmt, 2, tid, -1, SQLITE_STATIC);
+                        sqlite3_bind_int64(sync_stmt, 3, (sqlite3_int64)inv);
+                        (void)sqlite3_step(sync_stmt);
+                    }
+                }
+            }
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    if(snap_stmt) sqlite3_finalize(snap_stmt);
+    if(sync_stmt) sqlite3_finalize(sync_stmt);
+    sqlite3_exec(app_db, "COMMIT", NULL, NULL, NULL);
+    sqlite3_exec(hltb_db, "COMMIT", NULL, NULL, NULL);
+    sqlite3_close(app_db);
+    sqlite3_close(hltb_db);
+    free(resp.data);
+
+    snprintf(chunk, sizeof chunk,
+             "{\"ok\":true,\"updated\":%d,\"skipped\":%d,\"missingInDb\":%d,\"notOnHltb\":%d}",
+             updated, skipped, missing, not_on_hltb);
+    if(buffer_append_str(&out, chunk) != 0) {
+        free(out.data);
+        snprintf(error_message, error_message_size, "Out of memory.");
+        return NULL;
+    }
+    if(length_out) *length_out = out.length;
+    return out.data;
+}

@@ -166,7 +166,7 @@ static int param_get(const server_request_t *req, const char *key, char *value,
 /* POST /api/playtime?id=<TITLEID>&user=<userId>&value=<units> */
 static void handle_set_playtime(int fd, const server_request_t *req,
                                 const context_t *ctx) {
-    char id[16];
+    char id[32];
     char user[24];
     char number[24];
     char error[256];
@@ -363,6 +363,34 @@ static void handle_hltb_sync(int fd, const server_request_t *req,
     }
     snprintf(resp, sizeof resp, "{\"ok\":true,\"synced\":%d}", synced);
     server_send(fd, 200, "application/json; charset=utf-8", resp, strlen(resp), 0);
+}
+
+/* POST /api/hltb/pull[?user=<ps5UserId>] */
+static void handle_hltb_pull(int fd, const server_request_t *req,
+                             const context_t *ctx) {
+    char user[32] = {0};
+    char error[256] = {0};
+    size_t length = 0;
+    char *json;
+
+    if(strcmp(req->method, "POST") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    if(!req->has_custom_header) {
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
+        return;
+    }
+    (void)param_get(req, "user", user, sizeof user);
+
+    json = hltb_pull_from_hltb_json(ctx->database_path, ctx->hltb_database_path,
+                                    user, &length, error, sizeof error);
+    if(!json) {
+        send_json_error(fd, 400, error[0] ? error : "Pull from HLTB failed.");
+        return;
+    }
+    server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
+    free(json);
 }
 
 /* POST /api/hltb/match-all */
@@ -628,7 +656,6 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
         handle_set_category(fd, req, ctx);
         return;
     }
-
     if(strcmp(path, "/api/shortcut/status") == 0) {
         handle_shortcut_status(fd, req, ctx);
         return;
@@ -663,6 +690,10 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
     }
     if(strcmp(path, "/api/hltb/sync") == 0) {
         handle_hltb_sync(fd, req, ctx);
+        return;
+    }
+    if(strcmp(path, "/api/hltb/pull") == 0) {
+        handle_hltb_pull(fd, req, ctx);
         return;
     }
     if(strcmp(path, "/api/hltb/match-all") == 0) {
@@ -730,6 +761,7 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
             send_json_error(fd, 500, error);
             return;
         }
+        hltb_snapshot_playtime(ctx->database_path, ctx->hltb_database_path);
         server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
         free(json);
     } else if(strncmp(path, "/icon/", 6) == 0) {
