@@ -103,4 +103,32 @@ int hltb_get_title_category(const char *path, const char *title_id,
 int hltb_is_app_title(const char *path, const char *title_id);
 int hltb_is_homebrew_title(const char *path, const char *title_id);
 
+/* Automatic non-destructive snapshot of non-zero playtime from app.db into hltb_db */
+void hltb_snapshot_playtime(const char *app_db_path, const char *hltb_db_path);
+
+/* Updates a single snapshot entry after an explicit manual playtime edit */
+void hltb_update_snapshot_entry(const char *hltb_db_path, const char *user_id,
+                                const char *title_id, long long played_seconds);
+
+/* Returns JSON summary of on-console snapshot & how many entries can be restored */
+char *hltb_backup_status_json(const char *app_db_path, const char *hltb_db_path,
+                              size_t *length_out, char *error_message,
+                              size_t error_message_size);
+
+/* Exports full JSON backup (playtime snapshots, custom categories, HLTB links) */
+char *hltb_backup_export_json(const char *app_db_path, const char *hltb_db_path,
+                              size_t *length_out, char *error_message,
+                              size_t error_message_size);
+
+/* Restores playtime from on-console snapshot back into app.db */
+char *hltb_backup_restore_snapshot_json(const char *app_db_path, const char *hltb_db_path,
+                                        int overwrite, size_t *length_out,
+                                        char *error_message, size_t error_message_size);
+
+/* Imports & restores JSON backup (playtime, categories, HLTB links) */
+char *hltb_backup_import_json(const char *app_db_path, const char *hltb_db_path,
+                              const char *json_body, int overwrite,
+                              size_t *length_out, char *error_message,
+                              size_t error_message_size);
+
 #endif

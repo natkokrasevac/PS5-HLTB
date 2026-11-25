@@ -19,7 +19,7 @@
 #include "server.h"
 
 #define REQUEST_MAX 4096
-#define BODY_MAX 65536
+#define BODY_MAX 2097152
 #define IO_TIMEOUT_SECONDS 5
 
 static const char *status_text(int status) {

@@ -198,6 +198,7 @@ static void handle_set_playtime(int fd, const server_request_t *req,
         send_json_error(fd, 500, error);
         return;
     }
+    hltb_update_snapshot_entry(ctx->hltb_database_path, user, id, value);
     server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true}", 11, 0);
 }
 
@@ -492,10 +493,137 @@ static void handle_set_category(int fd, const server_request_t *req,
     server_send(fd, 200, "application/json; charset=utf-8", "{\"ok\":true}", 11, 0);
 }
 
+/* GET /api/backup/status */
+static void handle_backup_status(int fd, const server_request_t *req,
+                                 const context_t *ctx) {
+    char error[256] = {0};
+    size_t length = 0;
+    char *json;
+
+    if(strcmp(req->method, "GET") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    json = hltb_backup_status_json(ctx->database_path, ctx->hltb_database_path,
+                                   &length, error, sizeof error);
+    if(!json) {
+        send_json_error(fd, 500, error[0] ? error : "Failed to read backup status.");
+        return;
+    }
+    server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
+    free(json);
+}
+
+/* GET /api/backup/export */
+static void handle_backup_export(int fd, const server_request_t *req,
+                                 const context_t *ctx) {
+    char error[256] = {0};
+    size_t length = 0;
+    char *json;
+
+    if(strcmp(req->method, "GET") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    json = hltb_backup_export_json(ctx->database_path, ctx->hltb_database_path,
+                                   &length, error, sizeof error);
+    if(!json) {
+        send_json_error(fd, 500, error[0] ? error : "Failed to export backup.");
+        return;
+    }
+    server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
+    free(json);
+}
+
+/* POST /api/backup/restore-snapshot?mode=higher|overwrite */
+static void handle_backup_restore_snapshot(int fd, const server_request_t *req,
+                                           const context_t *ctx) {
+    char mode[16] = {0};
+    char error[256] = {0};
+    size_t length = 0;
+    int overwrite = 0;
+    char *json;
+
+    if(strcmp(req->method, "POST") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    if(!req->has_custom_header) {
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
+        return;
+    }
+    if(param_get(req, "mode", mode, sizeof mode) == 0 &&
+       strcmp(mode, "overwrite") == 0) {
+        overwrite = 1;
+    }
+    json = hltb_backup_restore_snapshot_json(ctx->database_path,
+                                             ctx->hltb_database_path,
+                                             overwrite, &length,
+                                             error, sizeof error);
+    if(!json) {
+        send_json_error(fd, 500, error[0] ? error : "Failed to restore snapshot.");
+        return;
+    }
+    server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
+    free(json);
+}
+
+/* POST /api/backup/import?mode=higher|overwrite */
+static void handle_backup_import(int fd, const server_request_t *req,
+                                 const context_t *ctx) {
+    char mode[16] = {0};
+    char error[256] = {0};
+    size_t length = 0;
+    int overwrite = 0;
+    char *json;
+
+    if(strcmp(req->method, "POST") != 0) {
+        server_send(fd, 405, "text/plain", "Method not allowed", 18, 0);
+        return;
+    }
+    if(!req->has_custom_header) {
+        send_json_error(fd, 403, "Missing " PS5_HLTB_CSRF_HEADER " header.");
+        return;
+    }
+    if(!req->body || req->body_length == 0) {
+        send_json_error(fd, 400, "Empty backup file.");
+        return;
+    }
+    if(param_get(req, "mode", mode, sizeof mode) == 0 &&
+       strcmp(mode, "overwrite") == 0) {
+        overwrite = 1;
+    }
+    json = hltb_backup_import_json(ctx->database_path, ctx->hltb_database_path,
+                                   req->body, overwrite, &length,
+                                   error, sizeof error);
+    if(!json) {
+        send_json_error(fd, 500, error[0] ? error : "Failed to import backup.");
+        return;
+    }
+    server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
+    free(json);
+}
+
 static void handle_request(int fd, const server_request_t *req, void *user) {
     const context_t *ctx = (const context_t *)user;
     const char *path = req->path;
 
+    if(strcmp(path, "/api/backup/status") == 0) {
+        handle_backup_status(fd, req, ctx);
+        return;
+    }
+    if(strcmp(path, "/api/backup/export") == 0) {
+        handle_backup_export(fd, req, ctx);
+        return;
+    }
+    if(strcmp(path, "/api/backup/restore-snapshot") == 0) {
+        handle_backup_restore_snapshot(fd, req, ctx);
+        return;
+    }
+    if(strcmp(path, "/api/backup/import") == 0) {
+        handle_backup_import(fd, req, ctx);
+        return;
+    }
     if(strcmp(path, "/api/category") == 0) {
         handle_set_category(fd, req, ctx);
         return;
@@ -589,6 +717,7 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
             send_json_error(fd, 500, error);
             return;
         }
+        hltb_snapshot_playtime(ctx->database_path, ctx->hltb_database_path);
         server_send(fd, 200, "application/json; charset=utf-8", json, length, 0);
         free(json);
     } else if(strcmp(path, "/api/hltb") == 0) {

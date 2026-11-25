@@ -180,6 +180,25 @@ button.pill svg { width: .95rem; height: .95rem; margin-right: .38rem; color: va
 .theme.dark .track i, .theme[aria-checked="true"] .track i { left: 1.25rem; }
 .theme:hover { background: var(--seg-hover); }
 
+/* backup / restore button & modal */
+.backup-btn { position: relative; display: inline-flex; align-items: center; gap: .38rem; margin-right: .55rem; padding: .24rem .72rem; cursor: pointer; color: var(--text); font: inherit; font-size: .78rem; font-weight: 700; background: var(--seg-bg); border: 1px solid var(--seg-line); border-radius: 999px; }
+.backup-btn:hover { background: var(--seg-hover); border-color: var(--accent); color: var(--accent); }
+.bk-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 6px var(--amber); display: inline-block; }
+.bk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin-top: .65rem; }
+@media (max-width: 680px) { .bk-grid { grid-template-columns: 1fr; } }
+.bk-card { display: flex; flex-direction: column; justify-content: space-between; padding: .68rem .82rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--inset); }
+.bk-card h4 { margin: 0 0 .22rem; font-size: .9rem; font-weight: 700; color: var(--text); }
+.bk-sub { margin: 0 0 .45rem; font-size: .78rem; color: var(--muted); line-height: 1.38; }
+.bk-alert { margin: 0 0 .45rem; padding: .4rem .62rem; border-radius: var(--rc); font-size: .77rem; font-weight: 600; color: var(--amber); background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); }
+.bk-result { margin-top: .65rem; padding: .5rem .72rem; border-radius: var(--rc); font-size: .8rem; font-weight: 600; color: var(--green); background: var(--played-bg); border: 1px solid var(--played-line); line-height: 1.4; }
+.bk-row { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin-top: auto; }
+.bk-sel { padding: .3rem .52rem; font: inherit; font-size: .79rem; color: var(--text); background: var(--inset); border: 1px solid var(--line-strong); border-radius: var(--rc); }
+.bk-file { flex: 1 1 10rem; padding: .3rem .45rem; border: 1px dashed var(--line-strong); border-radius: var(--rc); background: var(--surface); font: inherit; font-size: .78rem; color: var(--text); max-width: 100%; min-width: 0; }
+.bk-time-badge { display: inline-flex; align-items: center; gap: .35rem; margin: 0 0 .45rem; padding: .2rem .55rem; border-radius: 6px; font-family: "SFMono-Regular", Consolas, monospace; font-size: .75rem; font-weight: 700; color: var(--accent); background: rgba(30, 144, 255, 0.12); border: 1px solid rgba(30, 144, 255, 0.32); }
+.bk-mode-bar { margin-top: .5rem; padding: .45rem .78rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.bk-mode-lbl { font-size: .76rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.bk-card.restore-file { border-color: rgba(30, 144, 255, 0.38); background: rgba(30, 144, 255, 0.05); }
+
 .box { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); box-shadow: var(--shadow); }
 .eyebrow { margin: 0 0 .273rem; text-align: left; color: var(--muted); font-size: .85rem; font-weight: 600; }
 
@@ -1331,6 +1350,11 @@ input[type=number] { -moz-appearance: textfield; }
       </div>
     </div>
     <div class="tright">
+      <button class="backup-btn" id="btnBackupModal" type="button" title="Backup &amp; Restore Playtime">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Backup / Restore</span>
+        <span class="bk-dot" id="bkDot" style="display:none"></span>
+      </button>
       <button class="theme" id="theme" type="button" role="switch" aria-checked="true" aria-label="Dark theme">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         <span class="track"><i></i></span>
@@ -1631,6 +1655,65 @@ input[type=number] { -moz-appearance: textfield; }
     <div id="distModalList" style="max-height:65vh;overflow-y:auto;display:flex;flex-direction:column;gap:.45rem;padding-right:.35rem"></div>
     <div class="mbtns" style="margin-top:.85rem">
       <button class="refresh primary" id="distModalClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="backupOverlay" style="display:none">
+  <div class="box modal" role="dialog" aria-modal="true" style="max-width:54rem;width:min(54rem,94vw)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.2rem">
+      <h3 class="mname" style="margin:0">Backup &amp; Restore</h3>
+      <button class="refresh" id="bkCloseTop" type="button" aria-label="Close" style="padding:.35rem .7rem;font-size:.85rem">&#x2715;</button>
+    </div>
+    <p class="bk-sub" style="margin-bottom:.4rem">Protect your playtime statistics against PS5 database rebuilds. Non-zero playtimes are automatically snapshotted on-console, and you can export or import full JSON backups.</p>
+
+    <div class="bk-mode-bar">
+      <span class="bk-mode-lbl">Restore Mode:</span>
+      <select class="bk-sel" id="bkModeSel" aria-label="Restore mode">
+        <option value="higher">Only restore missing / higher playtime (Recommended)</option>
+        <option value="overwrite">Overwrite current playtime with backup</option>
+      </select>
+    </div>
+
+    <div class="bk-grid">
+      <div class="bk-card">
+        <div>
+          <h4>Automatic On-Console Snapshot</h4>
+          <p class="bk-sub" id="bkSnapStatus" style="margin-bottom:.35rem">Checking snapshot status...</p>
+          <div><span class="bk-time-badge" id="bkSnapTime" style="display:none"></span></div>
+          <div class="bk-alert" id="bkSnapAlert" style="display:none"></div>
+        </div>
+        <div class="bk-row">
+          <button class="refresh primary" id="bkRestoreSnapBtn" type="button">Restore Snapshot</button>
+        </div>
+      </div>
+
+      <div class="bk-card">
+        <div>
+          <h4>Export Backup to File (.json)</h4>
+          <p class="bk-sub">Downloads playtime, custom categories, and HLTB matches to a portable JSON file on your device.</p>
+        </div>
+        <div class="bk-row">
+          <button class="refresh" id="bkExportBtn" type="button">Export Backup (.json)</button>
+        </div>
+      </div>
+
+      <div class="bk-card restore-file">
+        <div>
+          <h4>Restore Backup from File (.json)</h4>
+          <p class="bk-sub">Select a previously exported JSON backup file to restore playtime, categories, and HLTB links using the Restore Mode above.</p>
+        </div>
+        <div class="bk-row">
+          <input class="bk-file" id="bkFileInp" type="file" accept=".json,application/json">
+          <button class="refresh primary" id="bkImportBtn" type="button">Restore from File</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bk-result" id="bkResult" style="display:none"></div>
+
+    <div class="mbtns" style="margin-top:.65rem">
+      <button class="refresh" id="bkClose" type="button">Close</button>
     </div>
   </div>
 </div>
@@ -2867,6 +2950,7 @@ input[type=number] { -moz-appearance: textfield; }
         prepareHltb(h);
         renderDashboard();
         renderGrid();
+        refreshBackupStatus();
         try {
           var qp = new URLSearchParams(location.search);
           var qg = qp.get('game');
@@ -2910,6 +2994,7 @@ input[type=number] { -moz-appearance: textfield; }
         prepareHltb(h);
         renderDashboard();
         renderGrid();
+        refreshBackupStatus();
         renderHltbTab();
         toast((selected ? 'Enabled sync for ' : 'Removed sync for ') + ids.length + ' game' + (ids.length === 1 ? '' : 's'));
       })
@@ -3742,6 +3827,7 @@ input[type=number] { -moz-appearance: textfield; }
         prepare({ unitSeconds: state.unit, users: state.users, names: state.names, games: state.games });
         renderDashboard();
         renderGrid();
+        refreshBackupStatus();
         try {
           var qp = new URLSearchParams(location.search);
           var qg = qp.get('game');
@@ -3813,6 +3899,7 @@ input[type=number] { -moz-appearance: textfield; }
         renderHltbTab();
         renderDashboard();
         renderGrid();
+        refreshBackupStatus();
         try {
           var qp = new URLSearchParams(location.search);
           var qg = qp.get('game');
@@ -3885,6 +3972,7 @@ input[type=number] { -moz-appearance: textfield; }
         renderHltbTab();
         renderDashboard();
         renderGrid();
+        refreshBackupStatus();
         try {
           var qp = new URLSearchParams(location.search);
           var qg = qp.get('game');
@@ -4109,6 +4197,7 @@ input[type=number] { -moz-appearance: textfield; }
         if (h && h.syncActive) { lastSeenSyncActive = true; pollSyncStatus(); }
         renderDashboard();
         renderGrid();
+        refreshBackupStatus();
         try {
           var qp = new URLSearchParams(location.search);
           var qg = qp.get('game');
@@ -4358,12 +4447,195 @@ input[type=number] { -moz-appearance: textfield; }
   $('distOverlay').onclick = function (e) { if (e.target === this) { closeDistModal(); } };
   document.onkeydown = function (e) {
     if (e.key === 'Escape' || e.keyCode === 27) {
-      if ($('distOverlay') && $('distOverlay').style.display !== 'none') { closeDistModal(); }
+      if ($('backupOverlay') && $('backupOverlay').style.display !== 'none') { closeBackupModal(); }
+      else if ($('distOverlay') && $('distOverlay').style.display !== 'none') { closeDistModal(); }
       else if ($('progressOverlay') && $('progressOverlay').style.display !== 'none') { closeProgressModal(); }
       else if ($('qrOverlay').style.display !== 'none') { closeQrModal(); }
       else if (openGame) { closeDetail(); }
     }
   };
+
+  function refreshBackupStatus() {
+    fetch('/api/backup/status', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || d.error) return;
+        var dot = $('bkDot');
+        if (dot) { dot.style.display = (d.restorableCount > 0) ? 'inline-block' : 'none'; }
+        var st = $('bkSnapStatus');
+        var tm = $('bkSnapTime');
+        if (st) {
+          if (d.snapshotEntries > 0) {
+            st.textContent = plural(d.snapshotGames, 'game', 'games') + ' • ' + plural(d.snapshotEntries, 'user entry', 'user entries') + ' • ' + fmtLong(d.snapshotTotalSeconds || 0) + ' total backed up';
+          } else {
+            st.textContent = 'No non-zero playtime snapshot recorded yet.';
+          }
+        }
+        if (tm) {
+          if (d.lastSnapshotAt) {
+            tm.textContent = 'Last Snapshot: ' + d.lastSnapshotAt;
+            tm.style.display = 'inline-flex';
+          } else {
+            tm.style.display = 'none';
+          }
+        }
+        var al = $('bkSnapAlert');
+        if (al) {
+          if (d.restorableCount > 0) {
+            al.textContent = plural(d.restorableCount, 'entry has', 'entries have') + ' higher playtime in your on-console snapshot than currently in app.db. You can restore them below.';
+            al.style.display = 'block';
+          } else {
+            al.style.display = 'none';
+          }
+        }
+      })
+      .catch(function () {});
+  }
+
+  function showBackupResult(d) {
+    var box = $('bkResult');
+    if (!box) return;
+    var parts = [];
+    parts.push('Restored playtime: ' + (d.restoredPlaytime || 0));
+    parts.push('Skipped (already up to date): ' + (d.skippedPlaytime || 0));
+    if (d.missingInDb) {
+      parts.push('Not in app.db yet: ' + d.missingInDb + ' (launch those games once after a DB rebuild, then restore again)');
+    }
+    if (d.restoredCategories) {
+      parts.push('Restored categories: ' + d.restoredCategories);
+    }
+    if (d.restoredHltb) {
+      parts.push('Restored HLTB links: ' + d.restoredHltb);
+    }
+    box.textContent = parts.join(' • ');
+    box.style.display = 'block';
+  }
+
+  function openBackupModal() {
+    if ($('bkResult')) { $('bkResult').style.display = 'none'; }
+    var acct = activeHltbAccount();
+    var uIdx = activeHltbUserIdx();
+    var pullBtn = $('bkHltbPullBtn');
+    var pullSub = $('bkHltbSub');
+    if (pullBtn && pullSub) {
+      if (acct.loggedIn && !acct.sessionExpired) {
+        pullBtn.disabled = false;
+        pullSub.textContent = 'Pull higher playtimes from HowLongToBeat into PS5 for ' + userLabel(uIdx) + ' (' + (acct.hltbUsername || ('User #' + acct.hltbUserId)) + ').';
+      } else {
+        pullBtn.disabled = true;
+        pullSub.textContent = 'Sign in to HowLongToBeat in the HLTB Sync tab first to pull playtimes for ' + userLabel(uIdx) + '.';
+      }
+    }
+    refreshBackupStatus();
+    $('backupOverlay').style.display = 'flex';
+    $('bkClose').focus();
+  }
+
+  function closeBackupModal() {
+    $('backupOverlay').style.display = 'none';
+  }
+
+  if ($('btnBackupModal')) { $('btnBackupModal').onclick = openBackupModal; }
+  if ($('bkClose')) { $('bkClose').onclick = closeBackupModal; }
+  if ($('bkCloseTop')) { $('bkCloseTop').onclick = closeBackupModal; }
+  if ($('backupOverlay')) { $('backupOverlay').onclick = function (e) { if (e.target === this) { closeBackupModal(); } }; }
+
+  if ($('bkRestoreSnapBtn')) {
+    $('bkRestoreSnapBtn').onclick = function () {
+      var btn = this;
+      var mode = $('bkModeSel') ? $('bkModeSel').value : 'higher';
+      btn.disabled = true;
+      btn.textContent = 'Restoring...';
+      fetch('/api/backup/restore-snapshot?mode=' + encodeURIComponent(mode), {
+        method: 'POST',
+        headers: csrfHeaders()
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.error) throw new Error(d.error);
+          showBackupResult(d);
+          toast('Restored ' + (d.restoredPlaytime || 0) + ' playtime entries');
+          load();
+        })
+        .catch(function (e) {
+          toast('Restore failed: ' + ((e && e.message) ? e.message : e));
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = 'Restore Snapshot';
+        });
+    };
+  }
+
+  if ($('bkExportBtn')) {
+    $('bkExportBtn').onclick = function () {
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Exporting...';
+      fetch('/api/backup/export', { cache: 'no-store' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('Export failed (' + r.status + ')');
+          return r.text();
+        })
+        .then(function (txt) {
+          var blob = new Blob([txt], { type: 'application/json' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          var dt = new Date().toISOString().slice(0, 10);
+          a.href = url;
+          a.download = 'ps5-hltb-backup-' + dt + '.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+          toast('Backup exported!');
+        })
+        .catch(function (e) {
+          toast('Export failed: ' + ((e && e.message) ? e.message : e));
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = 'Export Backup (.json)';
+        });
+    };
+  }
+
+  if ($('bkImportBtn')) {
+    $('bkImportBtn').onclick = function () {
+      var inp = $('bkFileInp');
+      if (!inp || !inp.files || !inp.files.length) {
+        toast('Please select a .json backup file first.');
+        return;
+      }
+      var btn = this;
+      var mode = $('bkModeSel') ? $('bkModeSel').value : 'higher';
+      var reader = new FileReader();
+      reader.onload = function () {
+        btn.disabled = true;
+        btn.textContent = 'Restoring...';
+        fetch('/api/backup/import?mode=' + encodeURIComponent(mode), {
+          method: 'POST',
+          headers: Object.assign({}, csrfHeaders(), { 'Content-Type': 'application/json' }),
+          body: reader.result
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (d.error) throw new Error(d.error);
+            showBackupResult(d);
+            toast('Backup imported: ' + (d.restoredPlaytime || 0) + ' playtime entries restored');
+            load();
+          })
+          .catch(function (e) {
+            toast('Import failed: ' + ((e && e.message) ? e.message : e));
+          })
+          .finally(function () {
+            btn.disabled = false;
+            btn.textContent = 'Restore from File';
+          });
+      };
+      reader.readAsText(inp.files[0]);
+    };
+  }
 
   if ($('btnShortcutAction')) { $('btnShortcutAction').onclick = onShortcutClick; }
   if ($('btnShortcutRemove')) { $('btnShortcutRemove').onclick = onShortcutRemoveClick; }

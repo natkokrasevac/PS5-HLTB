@@ -1606,6 +1606,15 @@ static int open_hltb_db(const char *path, sqlite3 **out_db, char *error_message,
         "CREATE TABLE IF NOT EXISTS title_categories ("
         "  title_id TEXT PRIMARY KEY,"
         "  category TEXT NOT NULL"
+        ");"
+        "CREATE TABLE IF NOT EXISTS playtime_snapshots ("
+        "  user_id TEXT NOT NULL,"
+        "  title_id TEXT NOT NULL,"
+        "  title_name TEXT NOT NULL DEFAULT '',"
+        "  played_seconds INTEGER NOT NULL DEFAULT 0,"
+        "  last_played TEXT NOT NULL DEFAULT '',"
+        "  updated_at TEXT NOT NULL DEFAULT '',"
+        "  PRIMARY KEY (user_id, title_id)"
         ");";
     sqlite3 *db = NULL;
     char *err = NULL;
@@ -3566,4 +3575,952 @@ void hltb_start_auto_sync_thread(const char *app_db_path,
     } else {
         free(args);
     }
+}
+
+/* ---- Playtime Backup & Restore ------------------------------------------ */
+
+static int backup_is_valid_user_id(const char *user_id) {
+    size_t i;
+    if(!user_id || !user_id[0]) return 0;
+    for(i = 0; user_id[i]; i++) {
+        if(user_id[i] < '0' || user_id[i] > '9') return 0;
+    }
+    return i <= 32;
+}
+
+static int backup_copy_file(const char *src_path, const char *dst_path) {
+    FILE *in = fopen(src_path, "rb");
+    FILE *out;
+    char buf[8192];
+    size_t n;
+
+    if(!in) return -1;
+    out = fopen(dst_path, "wb");
+    if(!out) {
+        fclose(in);
+        return -1;
+    }
+    while((n = fread(buf, 1, sizeof buf, in)) > 0) {
+        if(fwrite(buf, 1, n, out) != n) {
+            fclose(in);
+            fclose(out);
+            return -1;
+        }
+    }
+    if(ferror(in) || fclose(out) != 0) {
+        fclose(in);
+        return -1;
+    }
+    fclose(in);
+    return 0;
+}
+
+void hltb_snapshot_playtime(const char *app_db_path, const char *hltb_db_path) {
+    sqlite3 *app_db = NULL;
+    sqlite3 *hltb_db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    sqlite3_stmt *up_stmt = NULL;
+    char tables[PS5_HLTB_MAX_USERS][64];
+    char user_ids[PS5_HLTB_MAX_USERS][32];
+    size_t user_count = 0;
+    size_t u;
+    char err_buf[128] = {0};
+
+    if(!app_db_path || !hltb_db_path) return;
+    if(sqlite3_open_v2(app_db_path, &app_db,
+                       SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
+        if(app_db) sqlite3_close(app_db);
+        return;
+    }
+    sqlite3_busy_timeout(app_db, 3000);
+
+    if(sqlite3_prepare_v2(
+           app_db,
+           "SELECT name FROM sqlite_master WHERE type = 'table' "
+           "AND name LIKE 'tbl_iconinfo_%' ORDER BY name",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW && user_count < PS5_HLTB_MAX_USERS) {
+            const unsigned char *name = sqlite3_column_text(stmt, 0);
+            const char *uid;
+            if(!name) continue;
+            uid = (const char *)name + strlen("tbl_iconinfo_");
+            if(!backup_is_valid_user_id(uid)) continue;
+            snprintf(tables[user_count], sizeof tables[user_count], "%s", (const char *)name);
+            snprintf(user_ids[user_count], sizeof user_ids[user_count], "%s", uid);
+            user_count++;
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(user_count == 0) {
+        sqlite3_close(app_db);
+        return;
+    }
+
+    if(open_hltb_db(hltb_db_path, &hltb_db, err_buf, sizeof err_buf) != 0) {
+        sqlite3_close(app_db);
+        return;
+    }
+
+    sqlite3_exec(hltb_db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, NULL);
+    if(sqlite3_prepare_v2(
+           hltb_db,
+           "INSERT INTO playtime_snapshots "
+           "(user_id, title_id, title_name, played_seconds, last_played, updated_at) "
+           "VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', 'localtime')) "
+           "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+           "  title_name = CASE WHEN excluded.title_name != '' THEN excluded.title_name ELSE playtime_snapshots.title_name END, "
+           "  played_seconds = MAX(playtime_snapshots.played_seconds, excluded.played_seconds), "
+           "  last_played = CASE WHEN excluded.last_played > playtime_snapshots.last_played THEN excluded.last_played ELSE playtime_snapshots.last_played END, "
+           "  updated_at = CASE WHEN excluded.played_seconds > playtime_snapshots.played_seconds THEN datetime('now', 'localtime') ELSE playtime_snapshots.updated_at END",
+           -1, &up_stmt, NULL) != SQLITE_OK) {
+        sqlite3_exec(hltb_db, "ROLLBACK", NULL, NULL, NULL);
+        sqlite3_close(hltb_db);
+        sqlite3_close(app_db);
+        return;
+    }
+
+    for(u = 0; u < user_count; u++) {
+        char *sql = sqlite3_mprintf(
+            "SELECT p.titleId, COALESCE(MAX(c.titleName), ''), p.playedTimeOnConsole, "
+            "COALESCE(p.lastPlayedDate, '') "
+            "FROM \"%w\" p "
+            "LEFT JOIN tbl_contentinfo c ON c.titleId = p.titleId "
+            "WHERE p.playedTimeOnConsole > 0 "
+            "GROUP BY p.titleId",
+            tables[u]);
+        if(!sql) continue;
+        if(sqlite3_prepare_v2(app_db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+            while(sqlite3_step(stmt) == SQLITE_ROW) {
+                const char *tid = (const char *)sqlite3_column_text(stmt, 0);
+                const char *tname = (const char *)sqlite3_column_text(stmt, 1);
+                sqlite3_int64 sec = sqlite3_column_int64(stmt, 2);
+                const char *last = (const char *)sqlite3_column_text(stmt, 3);
+                if(!tid || !games_is_listed_title(tid) || sec <= 0) continue;
+
+                sqlite3_reset(up_stmt);
+                sqlite3_bind_text(up_stmt, 1, user_ids[u], -1, SQLITE_STATIC);
+                sqlite3_bind_text(up_stmt, 2, tid, -1, SQLITE_STATIC);
+                sqlite3_bind_text(up_stmt, 3, tname ? tname : "", -1, SQLITE_STATIC);
+                sqlite3_bind_int64(up_stmt, 4, sec);
+                sqlite3_bind_text(up_stmt, 5, last ? last : "", -1, SQLITE_STATIC);
+                (void)sqlite3_step(up_stmt);
+            }
+            sqlite3_finalize(stmt);
+            stmt = NULL;
+        }
+        sqlite3_free(sql);
+    }
+
+    sqlite3_finalize(up_stmt);
+    sqlite3_exec(hltb_db, "COMMIT", NULL, NULL, NULL);
+    sqlite3_close(hltb_db);
+    sqlite3_close(app_db);
+}
+
+void hltb_update_snapshot_entry(const char *hltb_db_path, const char *user_id,
+                                const char *title_id, long long played_seconds) {
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    char err_buf[128] = {0};
+
+    if(!hltb_db_path || !backup_is_valid_user_id(user_id) ||
+       !title_id || !games_is_listed_title(title_id) || played_seconds < 0) {
+        return;
+    }
+    if(open_hltb_db(hltb_db_path, &db, err_buf, sizeof err_buf) != 0) {
+        return;
+    }
+    if(sqlite3_prepare_v2(
+           db,
+           "INSERT INTO playtime_snapshots (user_id, title_id, played_seconds, updated_at) "
+           "VALUES (?1, ?2, ?3, datetime('now', 'localtime')) "
+           "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+           "  played_seconds = excluded.played_seconds, "
+           "  updated_at = datetime('now', 'localtime')",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, user_id, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, title_id, -1, SQLITE_STATIC);
+        sqlite3_bind_int64(stmt, 3, (sqlite3_int64)played_seconds);
+        (void)sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+    }
+    sqlite3_close(db);
+}
+
+static long long get_app_db_playtime(sqlite3 *app_db, const char *user_id,
+                                     const char *title_id, int *table_exists,
+                                     int *row_exists) {
+    char table[64];
+    sqlite3_stmt *stmt = NULL;
+    char *sql;
+    long long current = 0;
+
+    *table_exists = 0;
+    *row_exists = 0;
+    if(!app_db || !backup_is_valid_user_id(user_id) || !title_id) return 0;
+    snprintf(table, sizeof table, "tbl_iconinfo_%s", user_id);
+
+    if(sqlite3_prepare_v2(
+           app_db,
+           "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, table, -1, SQLITE_STATIC);
+        if(sqlite3_step(stmt) == SQLITE_ROW) {
+            *table_exists = 1;
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+    if(!*table_exists) return 0;
+
+    sql = sqlite3_mprintf(
+        "SELECT playedTimeOnConsole FROM \"%w\" WHERE titleId = ?1 LIMIT 1",
+        table);
+    if(!sql) return 0;
+    if(sqlite3_prepare_v2(app_db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, title_id, -1, SQLITE_STATIC);
+        if(sqlite3_step(stmt) == SQLITE_ROW) {
+            *row_exists = 1;
+            current = sqlite3_column_int64(stmt, 0);
+        }
+        sqlite3_finalize(stmt);
+    }
+    sqlite3_free(sql);
+    return current;
+}
+
+static void restore_single_playtime(sqlite3 *app_db, const char *user_id,
+                                    const char *title_id, long long played_seconds,
+                                    const char *last_played, int overwrite,
+                                    int *restored, int *skipped, int *missing) {
+    int table_exists = 0;
+    int row_exists = 0;
+    long long current;
+    char table[64];
+    char *sql;
+    sqlite3_stmt *stmt = NULL;
+    int rc;
+
+    if(!backup_is_valid_user_id(user_id) || !games_is_listed_title(title_id) ||
+       played_seconds < 0 || played_seconds > PS5_HLTB_MAX_VALUE) {
+        (*skipped)++;
+        return;
+    }
+
+    current = get_app_db_playtime(app_db, user_id, title_id, &table_exists, &row_exists);
+    if(!table_exists) {
+        (*missing)++;
+        return;
+    }
+
+    snprintf(table, sizeof table, "tbl_iconinfo_%s", user_id);
+    if(row_exists) {
+        if(!overwrite && current >= played_seconds) {
+            (*skipped)++;
+            return;
+        }
+        sql = sqlite3_mprintf(
+            "UPDATE \"%w\" SET playedTimeOnConsole = ?1, "
+            "lastPlayedDate = CASE WHEN (lastPlayedDate IS NULL OR lastPlayedDate = '') AND ?2 != '' THEN ?2 ELSE lastPlayedDate END "
+            "WHERE titleId = ?3",
+            table);
+        if(!sql) {
+            (*missing)++;
+            return;
+        }
+        rc = sqlite3_prepare_v2(app_db, sql, -1, &stmt, NULL);
+        sqlite3_free(sql);
+        if(rc == SQLITE_OK) {
+            sqlite3_bind_int64(stmt, 1, (sqlite3_int64)played_seconds);
+            sqlite3_bind_text(stmt, 2, last_played ? last_played : "", -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 3, title_id, -1, SQLITE_STATIC);
+            rc = sqlite3_step(stmt);
+            sqlite3_finalize(stmt);
+            if(rc == SQLITE_DONE) {
+                (*restored)++;
+                return;
+            }
+        } else if(stmt) {
+            sqlite3_finalize(stmt);
+        }
+        (*missing)++;
+        return;
+    }
+
+    /* Row does not exist yet in tbl_played_time_<user>; try inserting it */
+    if(played_seconds == 0 && !overwrite) {
+        (*skipped)++;
+        return;
+    }
+    sql = sqlite3_mprintf(
+        "INSERT OR IGNORE INTO \"%w\" (titleId, playedTimeOnConsole, lastPlayedDate) "
+        "VALUES (?1, ?2, ?3)",
+        table);
+    if(!sql) {
+        (*missing)++;
+        return;
+    }
+    rc = sqlite3_prepare_v2(app_db, sql, -1, &stmt, NULL);
+    sqlite3_free(sql);
+    if(rc == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, title_id, -1, SQLITE_STATIC);
+        sqlite3_bind_int64(stmt, 2, (sqlite3_int64)played_seconds);
+        sqlite3_bind_text(stmt, 3, last_played ? last_played : "", -1, SQLITE_STATIC);
+        rc = sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+        if(rc == SQLITE_DONE && sqlite3_changes(app_db) > 0) {
+            (*restored)++;
+            return;
+        }
+    } else if(stmt) {
+        sqlite3_finalize(stmt);
+    }
+    (*missing)++;
+}
+
+char *hltb_backup_status_json(const char *app_db_path, const char *hltb_db_path,
+                              size_t *length_out, char *error_message,
+                              size_t error_message_size) {
+    sqlite3 *hltb_db = NULL;
+    sqlite3 *app_db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    long long entries = 0;
+    long long games = 0;
+    long long total_sec = 0;
+    long long restorable = 0;
+    char last_at[64] = {0};
+    buffer_t out = {0};
+
+    hltb_snapshot_playtime(app_db_path, hltb_db_path);
+
+    if(open_hltb_db(hltb_db_path, &hltb_db, error_message, error_message_size) != 0) {
+        return NULL;
+    }
+
+    if(sqlite3_prepare_v2(
+           hltb_db,
+           "SELECT COUNT(*), COUNT(DISTINCT title_id), COALESCE(SUM(played_seconds), 0), "
+           "COALESCE(MAX(updated_at), '') FROM playtime_snapshots WHERE played_seconds > 0",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        if(sqlite3_step(stmt) == SQLITE_ROW) {
+            const unsigned char *dt;
+            entries = sqlite3_column_int64(stmt, 0);
+            games = sqlite3_column_int64(stmt, 1);
+            total_sec = sqlite3_column_int64(stmt, 2);
+            dt = sqlite3_column_text(stmt, 3);
+            if(dt) snprintf(last_at, sizeof last_at, "%s", (const char *)dt);
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(app_db_path &&
+       sqlite3_open_v2(app_db_path, &app_db,
+                       SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL) == SQLITE_OK) {
+        sqlite3_busy_timeout(app_db, 3000);
+        if(sqlite3_prepare_v2(
+               hltb_db,
+               "SELECT user_id, title_id, played_seconds FROM playtime_snapshots WHERE played_seconds > 0",
+               -1, &stmt, NULL) == SQLITE_OK) {
+            while(sqlite3_step(stmt) == SQLITE_ROW) {
+                const char *uid = (const char *)sqlite3_column_text(stmt, 0);
+                const char *tid = (const char *)sqlite3_column_text(stmt, 1);
+                long long snap_sec = sqlite3_column_int64(stmt, 2);
+                int tbl_ok = 0, row_ok = 0;
+                long long cur_sec;
+                if(!uid || !tid) continue;
+                cur_sec = get_app_db_playtime(app_db, uid, tid, &tbl_ok, &row_ok);
+                if(tbl_ok && snap_sec > cur_sec) {
+                    restorable++;
+                }
+            }
+            sqlite3_finalize(stmt);
+            stmt = NULL;
+        }
+        sqlite3_close(app_db);
+    }
+    sqlite3_close(hltb_db);
+
+    {
+        char chunk[256];
+        snprintf(chunk, sizeof chunk,
+                 "{\"snapshotEntries\":%lld,\"snapshotGames\":%lld,"
+                 "\"snapshotTotalSeconds\":%lld,\"restorableCount\":%lld,\"lastSnapshotAt\":",
+                 entries, games, total_sec, restorable);
+        if(buffer_append_str(&out, chunk) != 0 ||
+           buffer_append_json_string(&out, last_at) != 0 ||
+           buffer_append_str(&out, "}") != 0) {
+            free(out.data);
+            snprintf(error_message, error_message_size, "Out of memory.");
+            return NULL;
+        }
+    }
+    if(length_out) *length_out = out.length;
+    return out.data;
+}
+
+
+char *hltb_backup_export_json(const char *app_db_path, const char *hltb_db_path,
+                              size_t *length_out, char *error_message,
+                              size_t error_message_size) {
+    sqlite3 *hltb_db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    buffer_t out = {0};
+    int first;
+    time_t now = time(NULL);
+    struct tm tm_now;
+    char ts[32] = {0};
+
+    hltb_snapshot_playtime(app_db_path, hltb_db_path);
+
+    if(open_hltb_db(hltb_db_path, &hltb_db, error_message, error_message_size) != 0) {
+        return NULL;
+    }
+
+    if(localtime_r(&now, &tm_now) != NULL) {
+        strftime(ts, sizeof ts, "%Y-%m-%dT%H:%M:%S", &tm_now);
+    }
+
+    if(buffer_append_str(&out, "{\"version\":1,\"exportedAt\":") != 0 ||
+       buffer_append_json_string(&out, ts) != 0 ||
+       buffer_append_str(&out, ",\"playtime\":[") != 0) {
+        sqlite3_close(hltb_db);
+        free(out.data);
+        snprintf(error_message, error_message_size, "Out of memory.");
+        return NULL;
+    }
+
+    first = 1;
+    if(sqlite3_prepare_v2(
+           hltb_db,
+           "SELECT user_id, title_id, title_name, played_seconds, last_played "
+           "FROM playtime_snapshots WHERE played_seconds > 0 ORDER BY played_seconds DESC",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *uid = (const char *)sqlite3_column_text(stmt, 0);
+            const char *tid = (const char *)sqlite3_column_text(stmt, 1);
+            const char *tname = (const char *)sqlite3_column_text(stmt, 2);
+            long long sec = sqlite3_column_int64(stmt, 3);
+            const char *last = (const char *)sqlite3_column_text(stmt, 4);
+            char num[64];
+
+            snprintf(num, sizeof num, "%lld", sec);
+            if((!first && buffer_append_str(&out, ",") != 0) ||
+               buffer_append_str(&out, "{\"userId\":") != 0 ||
+               buffer_append_json_string(&out, uid ? uid : "") != 0 ||
+               buffer_append_str(&out, ",\"titleId\":") != 0 ||
+               buffer_append_json_string(&out, tid ? tid : "") != 0 ||
+               buffer_append_str(&out, ",\"titleName\":") != 0 ||
+               buffer_append_json_string(&out, tname ? tname : "") != 0 ||
+               buffer_append_str(&out, ",\"playedSeconds\":") != 0 ||
+               buffer_append_str(&out, num) != 0 ||
+               buffer_append_str(&out, ",\"lastPlayed\":") != 0 ||
+               buffer_append_json_string(&out, last ? last : "") != 0 ||
+               buffer_append_str(&out, "}") != 0) {
+                sqlite3_finalize(stmt);
+                sqlite3_close(hltb_db);
+                free(out.data);
+                snprintf(error_message, error_message_size, "Out of memory.");
+                return NULL;
+            }
+            first = 0;
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(buffer_append_str(&out, "],\"categories\":[") != 0) {
+        sqlite3_close(hltb_db);
+        free(out.data);
+        snprintf(error_message, error_message_size, "Out of memory.");
+        return NULL;
+    }
+
+    first = 1;
+    if(sqlite3_prepare_v2(hltb_db,
+                          "SELECT title_id, category FROM title_categories ORDER BY title_id",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *tid = (const char *)sqlite3_column_text(stmt, 0);
+            const char *cat = (const char *)sqlite3_column_text(stmt, 1);
+            if((!first && buffer_append_str(&out, ",") != 0) ||
+               buffer_append_str(&out, "{\"titleId\":") != 0 ||
+               buffer_append_json_string(&out, tid ? tid : "") != 0 ||
+               buffer_append_str(&out, ",\"category\":") != 0 ||
+               buffer_append_json_string(&out, cat ? cat : "") != 0 ||
+               buffer_append_str(&out, "}") != 0) {
+                sqlite3_finalize(stmt);
+                sqlite3_close(hltb_db);
+                free(out.data);
+                snprintf(error_message, error_message_size, "Out of memory.");
+                return NULL;
+            }
+            first = 0;
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(buffer_append_str(&out, "],\"hltb\":[") != 0) {
+        sqlite3_close(hltb_db);
+        free(out.data);
+        snprintf(error_message, error_message_size, "Out of memory.");
+        return NULL;
+    }
+
+    first = 1;
+    if(sqlite3_prepare_v2(
+           hltb_db,
+           "SELECT user_id, title_id, hltb_game_id, hltb_title, selected, list_type, "
+           "comp_main, comp_plus, comp_100, comp_all FROM hltb_games "
+           "WHERE hltb_game_id > 0 OR selected = 1",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *uid = (const char *)sqlite3_column_text(stmt, 0);
+            const char *tid = (const char *)sqlite3_column_text(stmt, 1);
+            long long gid = sqlite3_column_int64(stmt, 2);
+            const char *htitle = (const char *)sqlite3_column_text(stmt, 3);
+            int sel = sqlite3_column_int(stmt, 4);
+            const char *lt = (const char *)sqlite3_column_text(stmt, 5);
+            long long cm = sqlite3_column_int64(stmt, 6);
+            long long cp = sqlite3_column_int64(stmt, 7);
+            long long c1 = sqlite3_column_int64(stmt, 8);
+            long long ca = sqlite3_column_int64(stmt, 9);
+            char nums[256];
+
+            snprintf(nums, sizeof nums,
+                     ",\"hltbGameId\":%lld,\"selected\":%d,\"compMain\":%lld,"
+                     "\"compPlus\":%lld,\"comp100\":%lld,\"compAll\":%lld",
+                     gid, sel ? 1 : 0, cm, cp, c1, ca);
+            if((!first && buffer_append_str(&out, ",") != 0) ||
+               buffer_append_str(&out, "{\"userId\":") != 0 ||
+               buffer_append_json_string(&out, uid ? uid : "") != 0 ||
+               buffer_append_str(&out, ",\"titleId\":") != 0 ||
+               buffer_append_json_string(&out, tid ? tid : "") != 0 ||
+               buffer_append_str(&out, ",\"hltbTitle\":") != 0 ||
+               buffer_append_json_string(&out, htitle ? htitle : "") != 0 ||
+               buffer_append_str(&out, ",\"listType\":") != 0 ||
+               buffer_append_json_string(&out, lt ? lt : "playing") != 0 ||
+               buffer_append_str(&out, nums) != 0 ||
+               buffer_append_str(&out, "}") != 0) {
+                sqlite3_finalize(stmt);
+                sqlite3_close(hltb_db);
+                free(out.data);
+                snprintf(error_message, error_message_size, "Out of memory.");
+                return NULL;
+            }
+            first = 0;
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    sqlite3_close(hltb_db);
+    if(buffer_append_str(&out, "]}") != 0) {
+        free(out.data);
+        snprintf(error_message, error_message_size, "Out of memory.");
+        return NULL;
+    }
+    if(length_out) *length_out = out.length;
+    return out.data;
+}
+
+
+
+char *hltb_backup_restore_snapshot_json(const char *app_db_path, const char *hltb_db_path,
+                                        int overwrite, size_t *length_out,
+                                        char *error_message, size_t error_message_size) {
+    sqlite3 *hltb_db = NULL;
+    sqlite3 *app_db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int restored = 0, skipped = 0, missing = 0;
+    buffer_t out = {0};
+    char chunk[256];
+
+    if(!app_db_path || !hltb_db_path) {
+        snprintf(error_message, error_message_size, "Missing database path.");
+        return NULL;
+    }
+
+    if(backup_copy_file(app_db_path, GAMES_BACKUP_PATH) != 0) {
+        snprintf(error_message, error_message_size,
+                 "Backup to " GAMES_BACKUP_PATH " failed, nothing changed.");
+        return NULL;
+    }
+
+    if(open_hltb_db(hltb_db_path, &hltb_db, error_message, error_message_size) != 0) {
+        return NULL;
+    }
+
+    if(sqlite3_open_v2(app_db_path, &app_db,
+                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
+        set_db_error(error_message, error_message_size, "Open app.db for restore failed", app_db);
+        if(app_db) sqlite3_close(app_db);
+        sqlite3_close(hltb_db);
+        return NULL;
+    }
+    sqlite3_busy_timeout(app_db, 5000);
+    sqlite3_exec(app_db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, NULL);
+
+    if(sqlite3_prepare_v2(
+           hltb_db,
+           "SELECT user_id, title_id, played_seconds, last_played "
+           "FROM playtime_snapshots WHERE played_seconds > 0",
+           -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *uid = (const char *)sqlite3_column_text(stmt, 0);
+            const char *tid = (const char *)sqlite3_column_text(stmt, 1);
+            long long sec = sqlite3_column_int64(stmt, 2);
+            const char *last = (const char *)sqlite3_column_text(stmt, 3);
+            restore_single_playtime(app_db, uid, tid, sec, last, overwrite,
+                                    &restored, &skipped, &missing);
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    sqlite3_exec(app_db, "COMMIT", NULL, NULL, NULL);
+    sqlite3_close(app_db);
+    sqlite3_close(hltb_db);
+
+    snprintf(chunk, sizeof chunk,
+             "{\"ok\":true,\"restoredPlaytime\":%d,\"skippedPlaytime\":%d,"
+             "\"missingInDb\":%d,\"restoredCategories\":0,\"restoredHltb\":0}",
+             restored, skipped, missing);
+    if(buffer_append_str(&out, chunk) != 0) {
+        free(out.data);
+        snprintf(error_message, error_message_size, "Out of memory.");
+        return NULL;
+    }
+    if(length_out) *length_out = out.length;
+    return out.data;
+}
+
+
+/* Scans the next {...} object inside a JSON array, respecting strings/escapes. */
+static const char *next_json_object(const char *p, const char *array_end,
+                                    char **out_obj, const char **out_next) {
+    int in_str = 0;
+    int depth = 0;
+    const char *start = NULL;
+
+    *out_obj = NULL;
+    while(p < array_end && *p) {
+        char c = *p;
+        if(in_str) {
+            if(c == '\\' && (p + 1) < array_end && p[1]) {
+                p += 2;
+                continue;
+            }
+            if(c == '"') {
+                in_str = 0;
+            }
+        } else {
+            if(c == '"') {
+                in_str = 1;
+            } else if(c == '{') {
+                if(depth == 0) start = p;
+                depth++;
+            } else if(c == '}') {
+                depth--;
+                if(depth == 0 && start) {
+                    size_t len = (size_t)((p - start) + 1);
+                    char *obj = (char *)malloc(len + 1);
+                    if(obj) {
+                        memcpy(obj, start, len);
+                        obj[len] = '\0';
+                        *out_obj = obj;
+                    }
+                    *out_next = p + 1;
+                    return start;
+                }
+            } else if(c == ']' && depth == 0) {
+                break;
+            }
+        }
+        p++;
+    }
+    *out_next = array_end;
+    return NULL;
+}
+
+static const char *find_array_bounds(const char *json, const char *key,
+                                     const char **out_end) {
+    const char *val = find_json_key(json, key);
+    const char *p;
+    int in_str = 0;
+    int depth = 0;
+
+    if(!val || *val != '[') return NULL;
+    p = val;
+    while(*p) {
+        char c = *p;
+        if(in_str) {
+            if(c == '\\' && p[1]) {
+                p += 2;
+                continue;
+            }
+            if(c == '"') in_str = 0;
+        } else {
+            if(c == '"') in_str = 1;
+            else if(c == '[') depth++;
+            else if(c == ']') {
+                depth--;
+                if(depth == 0) {
+                    *out_end = p;
+                    return val + 1;
+                }
+            }
+        }
+        p++;
+    }
+    return NULL;
+}
+
+char *hltb_backup_import_json(const char *app_db_path, const char *hltb_db_path,
+                              const char *json_body, int overwrite,
+                              size_t *length_out, char *error_message,
+                              size_t error_message_size) {
+    sqlite3 *hltb_db = NULL;
+    sqlite3 *app_db = NULL;
+    const char *arr_start;
+    const char *arr_end = NULL;
+    const char *p;
+    int restored_pt = 0, skipped_pt = 0, missing_pt = 0;
+    int restored_cat = 0, restored_hltb = 0;
+    int found_any_section = 0;
+    buffer_t out = {0};
+    char chunk[256];
+
+    if(!json_body || !json_body[0]) {
+        snprintf(error_message, error_message_size, "Empty backup payload.");
+        return NULL;
+    }
+
+    if(find_array_bounds(json_body, "playtime", &arr_end) ||
+       find_array_bounds(json_body, "categories", &arr_end) ||
+       find_array_bounds(json_body, "hltb", &arr_end)) {
+        found_any_section = 1;
+    }
+    if(!found_any_section) {
+        snprintf(error_message, error_message_size,
+                 "Invalid backup file: missing playtime, categories, or hltb arrays.");
+        return NULL;
+    }
+
+    if(backup_copy_file(app_db_path, GAMES_BACKUP_PATH) != 0) {
+        snprintf(error_message, error_message_size,
+                 "Backup to " GAMES_BACKUP_PATH " failed, nothing changed.");
+        return NULL;
+    }
+
+    if(open_hltb_db(hltb_db_path, &hltb_db, error_message, error_message_size) != 0) {
+        return NULL;
+    }
+
+    if(sqlite3_open_v2(app_db_path, &app_db,
+                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL) != SQLITE_OK) {
+        set_db_error(error_message, error_message_size, "Open app.db for import failed", app_db);
+        if(app_db) sqlite3_close(app_db);
+        sqlite3_close(hltb_db);
+        return NULL;
+    }
+    sqlite3_busy_timeout(app_db, 5000);
+
+    sqlite3_exec(app_db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, NULL);
+    sqlite3_exec(hltb_db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, NULL);
+
+    /* 1. Restore playtime entries */
+    arr_start = find_array_bounds(json_body, "playtime", &arr_end);
+    if(arr_start) {
+        sqlite3_stmt *snap_stmt = NULL;
+        (void)sqlite3_prepare_v2(
+            hltb_db,
+            "INSERT INTO playtime_snapshots "
+            "(user_id, title_id, title_name, played_seconds, last_played, updated_at) "
+            "VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', 'localtime')) "
+            "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+            "  title_name = CASE WHEN excluded.title_name != '' THEN excluded.title_name ELSE playtime_snapshots.title_name END, "
+            "  played_seconds = CASE WHEN ?6 != 0 THEN excluded.played_seconds ELSE MAX(playtime_snapshots.played_seconds, excluded.played_seconds) END, "
+            "  last_played = CASE WHEN excluded.last_played > playtime_snapshots.last_played THEN excluded.last_played ELSE playtime_snapshots.last_played END, "
+            "  updated_at = datetime('now', 'localtime')",
+            -1, &snap_stmt, NULL);
+
+        p = arr_start;
+        while(p < arr_end) {
+            char *obj = NULL;
+            const char *next_p = NULL;
+            if(!next_json_object(p, arr_end, &obj, &next_p) || !obj) break;
+            p = next_p;
+
+            {
+                char uid[32] = {0};
+                char tid[32] = {0};
+                char tname[256] = {0};
+                char last[64] = {0};
+                long long sec = 0;
+
+                if(json_extract_string(obj, "userId", uid, sizeof uid) == 0 &&
+                   json_extract_string(obj, "titleId", tid, sizeof tid) == 0 &&
+                   json_extract_int64(obj, "playedSeconds", &sec) == 0 &&
+                   backup_is_valid_user_id(uid) && games_is_listed_title(tid) &&
+                   sec >= 0 && sec <= PS5_HLTB_MAX_VALUE) {
+                    (void)json_extract_string(obj, "titleName", tname, sizeof tname);
+                    (void)json_extract_string(obj, "lastPlayed", last, sizeof last);
+
+                    restore_single_playtime(app_db, uid, tid, sec, last, overwrite,
+                                            &restored_pt, &skipped_pt, &missing_pt);
+
+                    if(snap_stmt && sec > 0) {
+                        sqlite3_reset(snap_stmt);
+                        sqlite3_bind_text(snap_stmt, 1, uid, -1, SQLITE_STATIC);
+                        sqlite3_bind_text(snap_stmt, 2, tid, -1, SQLITE_STATIC);
+                        sqlite3_bind_text(snap_stmt, 3, tname, -1, SQLITE_STATIC);
+                        sqlite3_bind_int64(snap_stmt, 4, (sqlite3_int64)sec);
+                        sqlite3_bind_text(snap_stmt, 5, last, -1, SQLITE_STATIC);
+                        sqlite3_bind_int(snap_stmt, 6, overwrite ? 1 : 0);
+                        (void)sqlite3_step(snap_stmt);
+                    }
+                }
+            }
+            free(obj);
+        }
+        if(snap_stmt) sqlite3_finalize(snap_stmt);
+    }
+
+    /* 2. Restore custom categories */
+    arr_start = find_array_bounds(json_body, "categories", &arr_end);
+    if(arr_start) {
+        sqlite3_stmt *cat_stmt = NULL;
+        (void)sqlite3_prepare_v2(
+            hltb_db,
+            "INSERT OR REPLACE INTO title_categories (title_id, category) VALUES (?1, ?2)",
+            -1, &cat_stmt, NULL);
+
+        p = arr_start;
+        while(p < arr_end) {
+            char *obj = NULL;
+            const char *next_p = NULL;
+            if(!next_json_object(p, arr_end, &obj, &next_p) || !obj) break;
+            p = next_p;
+
+            {
+                char tid[32] = {0};
+                char cat[32] = {0};
+                const char *norm_cat = NULL;
+
+                if(json_extract_string(obj, "titleId", tid, sizeof tid) == 0 &&
+                   json_extract_string(obj, "category", cat, sizeof cat) == 0 &&
+                   games_is_listed_title(tid)) {
+                    if(strcasecmp(cat, "PS5") == 0) norm_cat = "PS5";
+                    else if(strcasecmp(cat, "PS4") == 0) norm_cat = "PS4";
+                    else if(strcasecmp(cat, "Other") == 0) norm_cat = "Other";
+                    else if(strcasecmp(cat, "Apps") == 0 || strcasecmp(cat, "HOMEBREW") == 0) norm_cat = "Apps";
+
+                    if(norm_cat && cat_stmt) {
+                        sqlite3_reset(cat_stmt);
+                        sqlite3_bind_text(cat_stmt, 1, tid, -1, SQLITE_STATIC);
+                        sqlite3_bind_text(cat_stmt, 2, norm_cat, -1, SQLITE_STATIC);
+                        if(sqlite3_step(cat_stmt) == SQLITE_DONE) {
+                            restored_cat++;
+                        }
+                    }
+                }
+            }
+            free(obj);
+        }
+        if(cat_stmt) sqlite3_finalize(cat_stmt);
+    }
+
+    /* 3. Restore HLTB links & selections */
+    arr_start = find_array_bounds(json_body, "hltb", &arr_end);
+    if(arr_start) {
+        sqlite3_stmt *hltb_stmt = NULL;
+        (void)sqlite3_prepare_v2(
+            hltb_db,
+            "INSERT INTO hltb_games "
+            "(user_id, title_id, hltb_game_id, hltb_title, selected, list_type, "
+            "comp_main, comp_plus, comp_100, comp_all, synced_seconds, updated_at) "
+            "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, -1, datetime('now', 'localtime')) "
+            "ON CONFLICT(user_id, title_id) DO UPDATE SET "
+            "  hltb_game_id = CASE WHEN ?11 != 0 OR hltb_games.hltb_game_id = 0 THEN excluded.hltb_game_id ELSE hltb_games.hltb_game_id END, "
+            "  hltb_title = CASE WHEN ?11 != 0 OR hltb_games.hltb_title = '' THEN excluded.hltb_title ELSE hltb_games.hltb_title END, "
+            "  selected = CASE WHEN ?11 != 0 THEN excluded.selected ELSE MAX(hltb_games.selected, excluded.selected) END, "
+            "  list_type = CASE WHEN ?11 != 0 THEN excluded.list_type ELSE hltb_games.list_type END, "
+            "  comp_main = CASE WHEN ?11 != 0 OR hltb_games.comp_main = 0 THEN excluded.comp_main ELSE hltb_games.comp_main END, "
+            "  comp_plus = CASE WHEN ?11 != 0 OR hltb_games.comp_plus = 0 THEN excluded.comp_plus ELSE hltb_games.comp_plus END, "
+            "  comp_100 = CASE WHEN ?11 != 0 OR hltb_games.comp_100 = 0 THEN excluded.comp_100 ELSE hltb_games.comp_100 END, "
+            "  comp_all = CASE WHEN ?11 != 0 OR hltb_games.comp_all = 0 THEN excluded.comp_all ELSE hltb_games.comp_all END",
+            -1, &hltb_stmt, NULL);
+
+        p = arr_start;
+        while(p < arr_end) {
+            char *obj = NULL;
+            const char *next_p = NULL;
+            if(!next_json_object(p, arr_end, &obj, &next_p) || !obj) break;
+            p = next_p;
+
+            {
+                char uid[32] = {0};
+                char tid[32] = {0};
+                char htitle[256] = {0};
+                char lt[16] = "playing";
+                long long gid = 0, sel = 0, cm = 0, cp = 0, c1 = 0, ca = 0;
+
+                if(json_extract_string(obj, "userId", uid, sizeof uid) == 0 &&
+                   json_extract_string(obj, "titleId", tid, sizeof tid) == 0 &&
+                   backup_is_valid_user_id(uid) && games_is_listed_title(tid)) {
+                    (void)json_extract_string(obj, "hltbTitle", htitle, sizeof htitle);
+                    (void)json_extract_string(obj, "listType", lt, sizeof lt);
+                    (void)json_extract_int64(obj, "hltbGameId", &gid);
+                    (void)json_extract_int64(obj, "selected", &sel);
+                    (void)json_extract_int64(obj, "compMain", &cm);
+                    (void)json_extract_int64(obj, "compPlus", &cp);
+                    (void)json_extract_int64(obj, "comp100", &c1);
+                    (void)json_extract_int64(obj, "compAll", &ca);
+                    if(strcmp(lt, "playing") != 0 && strcmp(lt, "backlog") != 0 &&
+                       strcmp(lt, "completed") != 0) {
+                        snprintf(lt, sizeof lt, "playing");
+                    }
+                    if(hltb_stmt && (gid > 0 || sel > 0)) {
+                        sqlite3_reset(hltb_stmt);
+                        sqlite3_bind_text(hltb_stmt, 1, uid, -1, SQLITE_STATIC);
+                        sqlite3_bind_text(hltb_stmt, 2, tid, -1, SQLITE_STATIC);
+                        sqlite3_bind_int64(hltb_stmt, 3, (sqlite3_int64)gid);
+                        sqlite3_bind_text(hltb_stmt, 4, htitle, -1, SQLITE_STATIC);
+                        sqlite3_bind_int(hltb_stmt, 5, sel ? 1 : 0);
+                        sqlite3_bind_text(hltb_stmt, 6, lt, -1, SQLITE_STATIC);
+                        sqlite3_bind_int64(hltb_stmt, 7, (sqlite3_int64)cm);
+                        sqlite3_bind_int64(hltb_stmt, 8, (sqlite3_int64)cp);
+                        sqlite3_bind_int64(hltb_stmt, 9, (sqlite3_int64)c1);
+                        sqlite3_bind_int64(hltb_stmt, 10, (sqlite3_int64)ca);
+                        sqlite3_bind_int(hltb_stmt, 11, overwrite ? 1 : 0);
+                        if(sqlite3_step(hltb_stmt) == SQLITE_DONE) {
+                            restored_hltb++;
+                        }
+                    }
+                }
+            }
+            free(obj);
+        }
+        if(hltb_stmt) sqlite3_finalize(hltb_stmt);
+    }
+
+    sqlite3_exec(app_db, "COMMIT", NULL, NULL, NULL);
+    sqlite3_exec(hltb_db, "COMMIT", NULL, NULL, NULL);
+    sqlite3_close(app_db);
+    sqlite3_close(hltb_db);
+
+    snprintf(chunk, sizeof chunk,
+             "{\"ok\":true,\"restoredPlaytime\":%d,\"skippedPlaytime\":%d,"
+             "\"missingInDb\":%d,\"restoredCategories\":%d,\"restoredHltb\":%d}",
+             restored_pt, skipped_pt, missing_pt, restored_cat, restored_hltb);
+    if(buffer_append_str(&out, chunk) != 0) {
+        free(out.data);
+        snprintf(error_message, error_message_size, "Out of memory.");
+        return NULL;
+    }
+    if(length_out) *length_out = out.length;
+    return out.data;
 }
