@@ -1336,6 +1336,12 @@ static void hltb_api_find_user_submission(http_ctx_t *hctx, const char *cookie,
                                           long long *sub_id_out,
                                           long long *prev_sec_out,
                                           hltb_lists_t *lists_out,
+                                          char *existing_title_out,
+                                          size_t existing_title_size,
+                                          char *existing_platform_out,
+                                          size_t existing_platform_size,
+                                          char *existing_storefront_out,
+                                          size_t existing_storefront_size,
                                           long long *comp_main_out,
                                           long long *comp_plus_out,
                                           long long *comp_100_out,
@@ -1349,6 +1355,15 @@ static void hltb_api_find_user_submission(http_ctx_t *hctx, const char *cookie,
 
     *sub_id_out = 0;
     *prev_sec_out = 0;
+    if(existing_title_out && existing_title_size > 0) {
+        existing_title_out[0] = '\0';
+    }
+    if(existing_platform_out && existing_platform_size > 0) {
+        existing_platform_out[0] = '\0';
+    }
+    if(existing_storefront_out && existing_storefront_size > 0) {
+        existing_storefront_out[0] = '\0';
+    }
     memset(lists_out, 0, sizeof *lists_out);
     lists_out->playing = 1;
 
@@ -1388,6 +1403,25 @@ static void hltb_api_find_user_submission(http_ctx_t *hctx, const char *cookie,
             }
             if(json_extract_int64(obj_start, "invested_pro", &inv) == 0 && inv >= 0) {
                 *prev_sec_out = inv;
+            }
+            if(existing_title_out && existing_title_size > 0) {
+                if(json_extract_string(obj_start, "custom_title", existing_title_out,
+                                       existing_title_size) != 0 ||
+                   existing_title_out[0] == '\0') {
+                    (void)json_extract_string(obj_start, "game_name",
+                                              existing_title_out,
+                                              existing_title_size);
+                }
+            }
+            if(existing_platform_out && existing_platform_size > 0) {
+                (void)json_extract_string(obj_start, "platform",
+                                          existing_platform_out,
+                                          existing_platform_size);
+            }
+            if(existing_storefront_out && existing_storefront_size > 0) {
+                (void)json_extract_string(obj_start, "storefront",
+                                          existing_storefront_out,
+                                          existing_storefront_size);
             }
             if(json_extract_int64(obj_start, "list_playing", &v) == 0) lists_out->playing = (v != 0);
             if(json_extract_int64(obj_start, "list_backlog", &v) == 0) lists_out->backlog = (v != 0);
@@ -1431,6 +1465,8 @@ static int hltb_api_submit_progress(http_ctx_t *hctx, const char *cookie,
                                     long long hltb_user_id,
                                     long long hltb_game_id,
                                     long long submission_id, const char *title,
+                                    const char *platform_override,
+                                    const char *storefront_override,
                                     int is_ps5, long long played_sec,
                                     long long prev_sec,
                                     const hltb_lists_t *lists,
@@ -1473,11 +1509,20 @@ static int hltb_api_submit_progress(http_ctx_t *hctx, const char *cookie,
              submission_id > 1 ? submission_id : 0LL, hltb_user_id, hltb_game_id);
     (void)buffer_append_str(&payload, chunk);
     (void)buffer_append_json_string(&payload, title ? title : "");
+    (void)buffer_append_str(&payload, ",\"platform\":");
+    (void)buffer_append_json_string(
+        &payload,
+        (platform_override && platform_override[0])
+            ? platform_override
+            : (is_ps5 ? "PlayStation 5" : "PlayStation 4"));
+    (void)buffer_append_str(&payload, ",\"storefront\":");
+    (void)buffer_append_json_string(
+        &payload,
+        (storefront_override && storefront_override[0]) ? storefront_override : "");
 
     snprintf(
         chunk, sizeof chunk,
-        ",\"platform\":\"%s\",\"storefront\":\"\","
-        "\"lists\":{\"playing\":%s,\"backlog\":%s,\"replay\":%s,\"custom\":%s,"
+        ",\"lists\":{\"playing\":%s,\"backlog\":%s,\"replay\":%s,\"custom\":%s,"
         "\"custom2\":%s,\"custom3\":%s,\"completed\":%s,\"retired\":%s},"
         "\"general\":{\"progress\":{\"hours\":%lld,\"minutes\":%lld,\"seconds\":%lld},"
         "\"progressBefore\":{\"hours\":%lld,\"minutes\":%lld,\"seconds\":%lld},"
@@ -1498,7 +1543,6 @@ static int hltb_api_submit_progress(http_ctx_t *hctx, const char *cookie,
         "\"additionals\":{\"notes\":\"\",\"video\":\"\"},"
         "\"adminId\":null,"
         "\"customLabels\":{\"custom\":\"\",\"custom2\":\"\",\"custom3\":\"\"}}",
-        is_ps5 ? "PlayStation 5" : "PlayStation 4",
         lists->playing ? "true" : "false",
         lists->backlog ? "true" : "false",
         lists->replay ? "true" : "false",
@@ -2443,7 +2487,7 @@ int hltb_select_game(const char *hltb_db_path, const char *ps5_user_id,
             while(*p && *p != ',') p++;
             if(*p == ',') p++;
 
-            if(tok[0] && strncmp(tok, "PPSA9", 5) != 0 && strncmp(tok, "CUSA9", 5) != 0) {
+            if(tok[0] && !hltb_is_app_title(hltb_db_path, tok)) {
                 if(stmt_update) {
                     sqlite3_reset(stmt_update);
                     sqlite3_bind_text(stmt_update, 1, ps5_user_id, -1, SQLITE_STATIC);
@@ -2467,13 +2511,6 @@ int hltb_select_game(const char *hltb_db_path, const char *ps5_user_id,
         sqlite3_exec(db, "COMMIT", NULL, NULL, NULL);
         sqlite3_close(db);
         return 0;
-    }
-
-    /* Homebrew apps are not games and cannot be synced to HowLongToBeat */
-    if(strncmp(title_id, "PPSA9", 5) == 0 || strncmp(title_id, "CUSA9", 5) == 0) {
-        snprintf(error_message, error_message_size,
-                 "Homebrew applications cannot be synced to HowLongToBeat.");
-        return -1;
     }
 
     /* Apps are not games and cannot be synced to HowLongToBeat */
@@ -2820,7 +2857,7 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
             continue;
         }
         /* Never sync homebrew titles to HowLongToBeat */
-        if(strncmp(tid, "PPSA9", 5) == 0 || strncmp(tid, "CUSA9", 5) == 0) {
+        if(hltb_is_homebrew_title(hltb_db_path, tid)) {
             continue;
         }
         if(item_count == item_cap) {
@@ -3010,12 +3047,26 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
         snprintf(g_sync_msg, sizeof g_sync_msg, "Syncing '%s' to HowLongToBeat...",
                  it->hltb_title[0] ? it->hltb_title : search_name);
 
-        hltb_api_find_user_submission(&hctx, acct->session_cookie, acct->hltb_user_id,
-                                      it->hltb_game_id, &new_sub_id, &prev_sec,
-                                      &lists, &it->comp_main, &it->comp_plus,
-                                      &it->comp_100, &it->comp_all);
-        if(new_sub_id > 1) {
-            it->hltb_submission_id = new_sub_id;
+        char existing_platform[64] = {0};
+        char existing_storefront[64] = {0};
+        {
+            char existing_hltb_title[256] = {0};
+            hltb_api_find_user_submission(&hctx, acct->session_cookie, acct->hltb_user_id,
+                                          it->hltb_game_id, &new_sub_id, &prev_sec,
+                                          &lists, existing_hltb_title,
+                                          sizeof existing_hltb_title,
+                                          existing_platform,
+                                          sizeof existing_platform,
+                                          existing_storefront,
+                                          sizeof existing_storefront,
+                                          &it->comp_main, &it->comp_plus,
+                                          &it->comp_100, &it->comp_all);
+            if(new_sub_id > 1) {
+                it->hltb_submission_id = new_sub_id;
+            }
+            if(existing_hltb_title[0]) {
+                snprintf(it->hltb_title, sizeof it->hltb_title, "%s", existing_hltb_title);
+            }
         }
 
         /* Apply user's selected list type ("playing", "backlog", or "completed") */
@@ -3034,7 +3085,10 @@ int hltb_sync_selected(const char *app_db_path, const char *hltb_db_path,
 
         int sub_rc = hltb_api_submit_progress(&hctx, acct->session_cookie, acct->hltb_user_id,
                                               it->hltb_game_id, it->hltb_submission_id,
-                                              it->hltb_title, is_ps5, played_sec, prev_sec,
+                                              it->hltb_title,
+                                              existing_platform,
+                                              existing_storefront,
+                                              is_ps5, played_sec, prev_sec,
                                               &lists, &new_sub_id, sub_err,
                                               sizeof sub_err);
         if(sub_rc == 0) {
@@ -3224,11 +3278,10 @@ int hltb_auto_match_library(const char *app_db_path, const char *hltb_db_path, i
         num_users = 1;
     }
 
-    /* Query non-homebrew games from tbl_contentinfo */
+    /* Query games from tbl_contentinfo */
     if(sqlite3_prepare_v2(app_db,
                           "SELECT DISTINCT TRIM(titleId), TRIM(titleName) FROM tbl_contentinfo "
-                          "WHERE titleId NOT LIKE 'PPSA9%' AND titleId NOT LIKE 'CUSA9%' "
-                          "AND titleName IS NOT NULL AND titleName != ''",
+                          "WHERE titleName IS NOT NULL AND titleName != ''",
                           -1, &stmt, NULL) == SQLITE_OK) {
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             const char *tid = (const char *)sqlite3_column_text(stmt, 0);

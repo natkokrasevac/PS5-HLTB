@@ -1472,9 +1472,12 @@ input[type=number] { -moz-appearance: textfield; }
                   <span class="hltb-status-dot"></span>
                   <span id="hltbLoggedInName">User</span>
                 </div>
-                <span class="sub" style="font-size:.78rem">Saved on PS5 (<code>/data/playtime_hltb.db</code>)</span>
+                <span class="sub" style="font-size:.78rem">Signed in</span>
               </div>
-              <button class="refresh" id="hltbLogoutBtn" type="button" style="padding:.4rem .8rem;font-size:.82rem">Log Out</button>
+              <div style="display:flex;align-items:center;gap:.45rem">
+                <a class="refresh" id="hltbProfileLink" href="#" target="_blank" rel="noopener" style="display:none;padding:.4rem .8rem;font-size:.82rem;text-decoration:none;color:var(--accent)">View Profile &#x2197;</a>
+                <button class="refresh" id="hltbLogoutBtn" type="button" style="padding:.4rem .8rem;font-size:.82rem">Log Out</button>
+              </div>
             </div>
           </div>
 
@@ -3059,6 +3062,15 @@ input[type=number] { -moz-appearance: textfield; }
       var uNameEl = $('hltbLoggedInName');
       if (uNameEl) {
         uNameEl.textContent = acct.hltbUsername || ('User #' + acct.hltbUserId);
+      }
+      var pLink = $('hltbProfileLink');
+      if (pLink) {
+        if (acct.hltbUsername) {
+          pLink.href = 'https://howlongtobeat.com/user/' + encodeURIComponent(acct.hltbUsername);
+          pLink.style.display = 'inline-block';
+        } else {
+          pLink.style.display = 'none';
+        }
       }
     } else if (acct.sessionExpired) {
       $('hltbAcctStatus').textContent = '⚠️ Profile ' + userLabel(uIdx) + ' session has expired! Please sign in again below.';
